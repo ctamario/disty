@@ -381,8 +381,10 @@ for(i in 1:nrow(megakey)){
   
   if(nrow(df_sub3)>3){
     ct <- cor.test(df_sub3[,2], df_sub3[,3], method="spearman")
+    trout_cdat <- data.frame("site1"=df_sub3[,2],"site2"=df_sub3[,3])
     megakey$n_years[i] <- nrow(df_sub3)
     megakey$rho_trout[i] <- ct$estimate
+    megakey$trout_n_ge0 <- nrow(df_sub3)
   } else {
     megakey$rho_trout[i] <- NA
   }
