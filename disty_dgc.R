@@ -85,9 +85,9 @@ p_load(sp, rgdal, riverdist, tidyr, dplyr, ggplot2, regclass, sjPlot, lme4)
 
 #Set working directory for the catchment you will work on.
 #it needs to contain three files: river polylines, electrofishing sites, and dam sites.
-setwd("C:/jobb/disty/74000")
+setwd("C:/jobb/disty/29000")
 
-MyRivernetwork <- line2network(path=".", layer="74000_rivers", tolerance=5)
+MyRivernetwork <- line2network(path=".", layer="29000_rivers", tolerance=5)
 # 
 # plot(MyRivernetwork)
 # 
@@ -97,7 +97,7 @@ MyR2 <- cleanup(MyRivernetwork)
 
 MyR3 <- sequenceverts(MyR2)
 
-sites <- pointshp2segvert(path=".", layer="74000_sites", rivers=MyR3)
+sites <- pointshp2segvert(path=".", layer="29000_sites", rivers=MyR3)
 #Remove all sites with snapping distance >100 meters as these likely are not in the rivers
 hist(sites$snapdist, main="snapping distance (m)")
 
@@ -137,7 +137,7 @@ riverpoints(seg=sites$seg, vert=sites$vert, rivers=MyR3, col="blue")
 
 ##adding dams??
 
-dams <- pointshp2segvert(path=".", layer="74000_dams", rivers=MyR3)
+dams <- pointshp2segvert(path=".", layer="29000_dams", rivers=MyR3)
 hist(dams$snapdist, main="snapping distance (m)")
 dams <- remove_long_snaps(dams, dist=100)
 hist(dams$snapdist, main="snapping distance (m)")
@@ -206,15 +206,22 @@ for(i in seq_along(unique(fragment_table$fragmentID))){
 
 riverpoints(seg=dams$seg, vert=dams$vert, rivers=MyR3, col="black", pch=17, cex=1)
 
-#dev.copy2pdf(file="74000_map.pdf", width=10, height=7)
+#dev.copy2pdf(file="29000_map.pdf", width=10, height=7)
 
 #Trouble with sites belonging to more than one fragment?
 cbind(fragment_table, duplicated(fragment_table[,1]))
 trouble_list <- fragment_table$site[duplicated(fragment_table[,1])]
 riverpoints(seg=sites$seg[trouble_list], vert=sites$vert[trouble_list], rivers=MyR3, col="black", pch=17, cex=1)
 
+### I want to add fragment ID to a site table and save it out ... 
+sites2 <- sites
+sites2$id2 <- as.character(1:nrow(sites))
+str(fragment_table)
+str(sites2)
+sites2$id2 <- as.integer(sites2$id2)
+sites2 <- sites2 %>% left_join(fragment_table, "fragmentID", by=c("id2"="site"))
 
-
+write.table(sites2, file=paste0("C:/jobb/disty/out_files/f_tables/f_table_29000_",Sys.Date(),".csv"), row.names=F)
 
 ##
 #sites$id <- rownames(sites)
@@ -452,7 +459,7 @@ megakey$over_frag01[megakey$over_frag] <- 1
 
 megakey$rivdistlg <- log(megakey$rivdist)
 
-megakey$river_id <- "74000"
+megakey$river_id <- "29000"
 
 
 
@@ -532,7 +539,7 @@ VIF(m1)
 # Save Megakey here for consolidation of many rivers later?
 
 
-write.table(megakey, file=paste0("C:/jobb/disty/out_files/megakeys/mega_key_74000_",Sys.Date(),".csv"))
+write.table(megakey, file=paste0("C:/jobb/disty/out_files/megakeys/mega_key_29000_",Sys.Date(),".csv"))
 
 
 head(megakey)
@@ -553,7 +560,7 @@ portfolio <- megakey3 %>% filter(over_frag == F) %>% group_by(fragmentID) %>%
             fragment_size_max=max(rivdist), 
             fragment_size_mean=mean(rivdist),
             n_pairs=n(),
-            river="74000")
+            river="29000")
 
 ggplot(data=portfolio, aes(x=fragment_size_max, y=mean_rho_trout, size=n_pairs))+
   geom_point()
@@ -577,7 +584,7 @@ ggplot(data=portfolio, aes(x=fragment_size_max, y=mean_rho_salmon, size=n_pairs)
 cor.test(portfolio$mean_rho_trout, portfolio$fragment_size_mean)
 summary(lm(data=portfolio, mean_rho_trout~fragment_size_mean+fragment_size_mean))
 
-write.table(portfolio, file="C:/jobb/disty/out_files/74000.csv", row.names = F, sep=";", dec=".")
+write.table(portfolio, file="C:/jobb/disty/out_files/29000.csv", row.names = F, sep=";", dec=".")
 
 ##### What about persistence?
 
@@ -597,7 +604,7 @@ step3 <- step2 %>% group_by(fragmentID) %>% summarise(mean_trout_occ = mean(ÖRK
 
 portfolio2 <- portfolio %>% inner_join(step3, by = c("fragmentID"))
 
-write.table(portfolio2, file="C:/jobb/disty/out_files/occ/74000.csv", row.names = F, sep=";", dec=".")
+write.table(portfolio2, file="C:/jobb/disty/out_files/occ/29000.csv", row.names = F, sep=";", dec=".")
 
 ##### Portfolio analysis
 
