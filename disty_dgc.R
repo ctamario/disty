@@ -2,10 +2,7 @@
 
 
 
-### Changing a little bit again...
 
-
-### WTF
 
 rm(list=ls())
 
