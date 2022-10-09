@@ -386,6 +386,9 @@ for(i in 1:nrow(megakey)){
     megakey$rho_trout[i] <- ct$estimate
     megakey$trout_n_gt0_one[i] <- f_n_gt0_one(trout_cdat)
     megakey$trout_n_gt0_two[i] <- f_n_gt0_two(trout_cdat)
+    megakey$trout_avg_site1[i] <- mean(trout_cdat$site1)
+    megakey$trout_avg_site2[i] <- mean(trout_cdat$site2)
+    megakey$trout_avg[i] <- mean(c(trout_cdat[,1], trout_cdat[,2]))
   } else {
     megakey$rho_trout[i] <- NA
   }
@@ -396,6 +399,9 @@ for(i in 1:nrow(megakey)){
     megakey$rho_minnow[i] <- ct2$estimate
     megakey$minnow_n_gt0_one[i] <- f_n_gt0_one(minnow_cdat)
     megakey$minnow_n_gt0_two[i] <- f_n_gt0_two(minnow_cdat)
+    megakey$minnow_avg_site1[i] <- mean(minnow_cdat$site1)
+    megakey$minnow_avg_site2[i] <- mean(minnow_cdat$site2)
+    megakey$minnow_avg[i] <- mean(c(minnow_cdat[,1], minnow_cdat[,2]))
   } else {
     megakey$rho_minnow[i] <- NA
   }
@@ -406,6 +412,9 @@ for(i in 1:nrow(megakey)){
     megakey$rho_roach[i] <- ct3$estimate
     megakey$roach_n_gt0_one[i] <- f_n_gt0_one(roach_cdat)
     megakey$roach_n_gt0_two[i] <- f_n_gt0_two(roach_cdat)
+    megakey$roach_avg_site1[i] <- mean(roach_cdat$site1)
+    megakey$roach_avg_site2[i] <- mean(roach_cdat$site2)
+    megakey$roach_avg[i] <- mean(c(roach_cdat[,1], roach_cdat[,2]))
   } else {
     megakey$rho_roach[i] <- NA
   }
@@ -416,6 +425,9 @@ for(i in 1:nrow(megakey)){
     megakey$rho_perch[i] <- ct4$estimate
     megakey$perch_n_gt0_one[i] <- f_n_gt0_one(perch_cdat)
     megakey$perch_n_gt0_two[i] <- f_n_gt0_two(perch_cdat)
+    megakey$perch_avg_site1[i] <- mean(perch_cdat$site1)
+    megakey$perch_avg_site2[i] <- mean(perch_cdat$site2)
+    megakey$perch_avg[i] <- mean(c(perch_cdat[,1], perch_cdat[,2]))
   } else {
     megakey$rho_perch[i] <- NA
   }
@@ -426,6 +438,9 @@ for(i in 1:nrow(megakey)){
     megakey$rho_pike[i] <- ct5$estimate
     megakey$pike_n_gt0_one[i] <- f_n_gt0_one(pike_cdat)
     megakey$pike_n_gt0_two[i] <- f_n_gt0_two(pike_cdat)
+    megakey$pike_avg_site1[i] <- mean(pike_cdat$site1)
+    megakey$pike_avg_site2[i] <- mean(pike_cdat$site2)
+    megakey$pike_avg[i] <- mean(c(pike_cdat[,1], pike_cdat[,2]))
   } else {
     megakey$rho_pike[i] <- NA
   }
@@ -436,15 +451,44 @@ for(i in 1:nrow(megakey)){
     megakey$rho_salmon[i] <- ct6$estimate
     megakey$salmon_n_gt0_one[i] <- f_n_gt0_one(salmon_cdat)
     megakey$salmon_n_gt0_two[i] <- f_n_gt0_two(salmon_cdat)
+    megakey$salmon_avg_site1[i] <- mean(salmon_cdat$site1)
+    megakey$salmon_avg_site2[i] <- mean(salmon_cdat$site2)
+    megakey$salmon_avg[i] <- mean(c(salmon_cdat[,1], salmon_cdat[,2]))
   } else {
     megakey$rho_salmon[i] <- NA
   }
   
 }
 
+megakey$trout_prop_unpaired <- megakey$trout_n_gt0_one/megakey$n_years
+megakey$minnow_prop_unpaired <- megakey$minnow_n_gt0_one/megakey$n_years
+megakey$roach_prop_unpaired <- megakey$roach_n_gt0_one/megakey$n_years
+megakey$perch_prop_unpaired <- megakey$perch_n_gt0_one/megakey$n_years
+megakey$pike_prop_unpaired <- megakey$pike_n_gt0_one/megakey$n_years
+
+
+with(megakey, plot(rho_trout ~ trout_prop_unpaired, cex = n_years/20))
+with(megakey, plot(rho_minnow ~ minnow_prop_unpaired, cex = n_years/20))
+with(megakey, plot(rho_roach ~ roach_prop_unpaired, cex = n_years/20))
+with(megakey, plot(rho_perch ~ perch_prop_unpaired, cex = n_years/20))
+with(megakey, plot(rho_pike ~ pike_prop_unpaired, cex = n_years/20))
+
+plot(data=megakey, trout_prop_unpaired ~ trout_avg)
+plot(data=megakey, minnow_prop_unpaired ~ minnow_avg)
+plot(data=megakey, roach_prop_unpaired ~ roach_avg)
+plot(data=megakey, perch_prop_unpaired ~ perch_avg)
+plot(data=megakey, pike_prop_unpaired ~ pike_avg)
 
 
 
+megakey$pike0s <- (megakey$n_years-megakey$pike_n_gt0_one-megakey$pike_n_gt0_two)/megakey$n_years
+megakey$trout0s <- (megakey$n_years-megakey$trout_n_gt0_one-megakey$trout_n_gt0_two)/megakey$n_years
+
+plot(data=megakey, pike0s ~ pike_avg)
+plot(data=megakey, trout_avg ~ trout0s)
+
+plot(data=megakey, rho_trout ~ trout_avg)
+summary(lm(data=megakey, rho_trout ~ trout_avg))
 
 head(megakey)
 
