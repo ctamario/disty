@@ -208,7 +208,18 @@ f_n_gt0_one <- function(in_data){
   return(paired_one)
 }
 
+f_n_gt0_two <- function(in_data){
+  t <- nrow(in_data)
+  d <- in_data
+  for(i in 1:t){
+    in_data$two_above[i] <- sum(c(d[i,] > 0))
+  }
+  paired_one <- sum(in_data$two_above == 2)
+  return(paired_one)
+}
+
 f_n_gt0_one(cor_in)
+f_n_gt0_two(cor_in)
 
 f_n_gt0_two
 

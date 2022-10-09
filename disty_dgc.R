@@ -384,42 +384,58 @@ for(i in 1:nrow(megakey)){
     trout_cdat <- data.frame("site1"=df_sub3[,2],"site2"=df_sub3[,3])
     megakey$n_years[i] <- nrow(df_sub3)
     megakey$rho_trout[i] <- ct$estimate
-    megakey$trout_n_ge0 <- nrow(df_sub3)
+    megakey$trout_n_gt0_one[i] <- f_n_gt0_one(trout_cdat)
+    megakey$trout_n_gt0_two[i] <- f_n_gt0_two(trout_cdat)
   } else {
     megakey$rho_trout[i] <- NA
   }
   
   if(nrow(df_sub5)>3){
     ct2 <- cor.test(df_sub5[,2], df_sub5[,3], method="spearman")
+    minnow_cdat <- data.frame("site1"=df_sub5[,2],"site2"=df_sub5[,3])
     megakey$rho_minnow[i] <- ct2$estimate
+    megakey$minnow_n_gt0_one[i] <- f_n_gt0_one(minnow_cdat)
+    megakey$minnow_n_gt0_two[i] <- f_n_gt0_two(minnow_cdat)
   } else {
     megakey$rho_minnow[i] <- NA
   }
   
   if(nrow(df_sub7)>3){
     ct3 <- cor.test(df_sub7[,2], df_sub7[,3], method="spearman")
+    roach_cdat <- data.frame("site1"=df_sub7[,2],"site2"=df_sub7[,3])
     megakey$rho_roach[i] <- ct3$estimate
+    megakey$roach_n_gt0_one[i] <- f_n_gt0_one(roach_cdat)
+    megakey$roach_n_gt0_two[i] <- f_n_gt0_two(roach_cdat)
   } else {
     megakey$rho_roach[i] <- NA
   }
   
   if(nrow(df_sub9)>3){
     ct4 <- cor.test(df_sub9[,2], df_sub9[,3], method="spearman")
+    perch_cdat <- data.frame("site1"=df_sub9[,2],"site2"=df_sub9[,3])
     megakey$rho_perch[i] <- ct4$estimate
+    megakey$perch_n_gt0_one[i] <- f_n_gt0_one(perch_cdat)
+    megakey$perch_n_gt0_two[i] <- f_n_gt0_two(perch_cdat)
   } else {
     megakey$rho_perch[i] <- NA
   }
   
   if(nrow(df_sub11)>3){
     ct5 <- cor.test(df_sub11[,2], df_sub11[,3], method="spearman")
+    pike_cdat <- data.frame("site1"=df_sub11[,2],"site2"=df_sub11[,3])
     megakey$rho_pike[i] <- ct5$estimate
+    megakey$pike_n_gt0_one[i] <- f_n_gt0_one(pike_cdat)
+    megakey$pike_n_gt0_two[i] <- f_n_gt0_two(pike_cdat)
   } else {
     megakey$rho_pike[i] <- NA
   }
   
   if(nrow(df_sub13)>3){
     ct6 <- cor.test(df_sub13[,2], df_sub13[,3], method="spearman")
+    salmon_cdat <- data.frame("site1"=df_sub13[,2],"site2"=df_sub13[,3])
     megakey$rho_salmon[i] <- ct6$estimate
+    megakey$salmon_n_gt0_one[i] <- f_n_gt0_one(salmon_cdat)
+    megakey$salmon_n_gt0_two[i] <- f_n_gt0_two(salmon_cdat)
   } else {
     megakey$rho_salmon[i] <- NA
   }
