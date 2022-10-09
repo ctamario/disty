@@ -479,13 +479,21 @@ plot(data=megakey, roach_prop_unpaired ~ roach_avg)
 plot(data=megakey, perch_prop_unpaired ~ perch_avg)
 plot(data=megakey, pike_prop_unpaired ~ pike_avg)
 
-
+with(megakey, plot(rho_trout ~ trout_prop_unpaired, cex = n_years/20))
+with(megakey, plot(rho_minnow ~ minnow_prop_unpaired, cex = n_years/20))
+with(megakey, plot(rho_roach ~ roach_prop_unpaired, cex = n_years/20))
+with(megakey, plot(rho_perch ~ perch_prop_unpaired, cex = n_years/20))
+with(megakey, plot(rho_pike ~ pike_prop_unpaired, cex = n_years/20))
 
 megakey$pike0s <- (megakey$n_years-megakey$pike_n_gt0_one-megakey$pike_n_gt0_two)/megakey$n_years
 megakey$trout0s <- (megakey$n_years-megakey$trout_n_gt0_one-megakey$trout_n_gt0_two)/megakey$n_years
 
 plot(data=megakey, pike0s ~ pike_avg)
 plot(data=megakey, trout_avg ~ trout0s)
+
+megakey$trout_avg <- mean(megakey$trout_avg_site1, megakey$trout_avg_site2)
+
+plot(data=megakey, trout_prop_unpaired ~ trout_avg)
 
 plot(data=megakey, rho_trout ~ trout_avg)
 summary(lm(data=megakey, rho_trout ~ trout_avg))
