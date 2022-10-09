@@ -386,6 +386,9 @@ for(i in 1:nrow(megakey)){
     megakey$rho_trout[i] <- ct$estimate
     megakey$trout_n_gt0_one[i] <- f_n_gt0_one(trout_cdat)
     megakey$trout_n_gt0_two[i] <- f_n_gt0_two(trout_cdat)
+    megakey$trout_avg_site1[i] <- mean(trout_cdat$site1)
+    megakey$trout_avg_site2[i] <- mean(trout_cdat$site2)
+    megakey$trout_avg[i] <- mean(c(trout_cdat[,1], trout_cdat[,2]))
   } else {
     megakey$rho_trout[i] <- NA
   }
@@ -442,9 +445,25 @@ for(i in 1:nrow(megakey)){
   
 }
 
+megakey$trout_prop_unpaired <- megakey$trout_n_gt0_one/megakey$n_years
+megakey$minnow_prop_unpaired <- megakey$minnow_n_gt0_one/megakey$n_years
+megakey$roach_prop_unpaired <- megakey$roach_n_gt0_one/megakey$n_years
+megakey$perch_prop_unpaired <- megakey$perch_n_gt0_one/megakey$n_years
+megakey$pike_prop_unpaired <- megakey$pike_n_gt0_one/megakey$n_years
 
 
+with(megakey, plot(rho_trout ~ trout_prop_unpaired, cex = n_years/20))
+with(megakey, plot(rho_minnow ~ minnow_prop_unpaired, cex = n_years/20))
+with(megakey, plot(rho_roach ~ roach_prop_unpaired, cex = n_years/20))
+with(megakey, plot(rho_perch ~ perch_prop_unpaired, cex = n_years/20))
+with(megakey, plot(rho_pike ~ pike_prop_unpaired, cex = n_years/20))
 
+megakey$trout_avg <- mean(megakey$trout_avg_site1, megakey$trout_avg_site2)
+
+plot(data=megakey, trout_prop_unpaired ~ trout_avg)
+
+plot(data=megakey, rho_trout ~ trout_avg)
+summary(lm(data=megakey, rho_trout ~ trout_avg))
 
 head(megakey)
 
