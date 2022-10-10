@@ -85,9 +85,9 @@ p_load(sp, rgdal, riverdist, tidyr, dplyr, ggplot2, regclass, sjPlot, lme4)
 
 #Set working directory for the catchment you will work on.
 #it needs to contain three files: river polylines, electrofishing sites, and dam sites.
-setwd("C:/jobb/disty/29000")
+setwd("C:/jobb/disty/74000")
 
-MyRivernetwork <- line2network(path=".", layer="29000_rivers", tolerance=5)
+MyRivernetwork <- line2network(path=".", layer="74000_rivers", tolerance=5)
 # 
 # plot(MyRivernetwork)
 # 
@@ -97,7 +97,7 @@ MyR2 <- cleanup(MyRivernetwork)
 
 MyR3 <- sequenceverts(MyR2)
 
-sites <- pointshp2segvert(path=".", layer="29000_sites", rivers=MyR3)
+sites <- pointshp2segvert(path=".", layer="74000_sites", rivers=MyR3)
 #Remove all sites with snapping distance >100 meters as these likely are not in the rivers
 hist(sites$snapdist, main="snapping distance (m)")
 
@@ -137,7 +137,7 @@ riverpoints(seg=sites$seg, vert=sites$vert, rivers=MyR3, col="blue")
 
 ##adding dams??
 
-dams <- pointshp2segvert(path=".", layer="29000_dams", rivers=MyR3)
+dams <- pointshp2segvert(path=".", layer="74000_dams", rivers=MyR3)
 hist(dams$snapdist, main="snapping distance (m)")
 dams <- remove_long_snaps(dams, dist=100)
 hist(dams$snapdist, main="snapping distance (m)")
@@ -206,7 +206,7 @@ for(i in seq_along(unique(fragment_table$fragmentID))){
 
 riverpoints(seg=dams$seg, vert=dams$vert, rivers=MyR3, col="black", pch=17, cex=1)
 
-#dev.copy2pdf(file="29000_map.pdf", width=10, height=7)
+#dev.copy2pdf(file="74000_map.pdf", width=10, height=7)
 
 #Trouble with sites belonging to more than one fragment?
 cbind(fragment_table, duplicated(fragment_table[,1]))
@@ -221,7 +221,7 @@ str(sites2)
 sites2$id2 <- as.integer(sites2$id2)
 sites2 <- sites2 %>% left_join(fragment_table, "fragmentID", by=c("id2"="site"))
 
-write.table(sites2, file=paste0("C:/jobb/disty/out_files/f_tables/f_table_29000_",Sys.Date(),".csv"), row.names=F)
+write.table(sites2, file=paste0("C:/jobb/disty/out_files/f_tables/f_table_74000_",Sys.Date(),".csv"), row.names=F)
 
 ##
 #sites$id <- rownames(sites)
@@ -467,11 +467,11 @@ megakey$perch_prop_unpaired <- megakey$perch_n_gt0_one/megakey$n_years
 megakey$pike_prop_unpaired <- megakey$pike_n_gt0_one/megakey$n_years
 
 
-with(megakey, plot(rho_trout ~ trout_prop_unpaired, cex = n_years/20))
-with(megakey, plot(rho_minnow ~ minnow_prop_unpaired, cex = n_years/20))
-with(megakey, plot(rho_roach ~ roach_prop_unpaired, cex = n_years/20))
-with(megakey, plot(rho_perch ~ perch_prop_unpaired, cex = n_years/20))
-with(megakey, plot(rho_pike ~ pike_prop_unpaired, cex = n_years/20))
+with(megakey, plot(rho_trout ~ trout_prop_unpaired, cex = n_years))
+with(megakey, plot(rho_minnow ~ minnow_prop_unpaired, cex = n_years))
+with(megakey, plot(rho_roach ~ roach_prop_unpaired, cex = n_years))
+with(megakey, plot(rho_perch ~ perch_prop_unpaired, cex = n_years))
+with(megakey, plot(rho_pike ~ pike_prop_unpaired, cex = n_years))
 
 plot(data=megakey, trout_prop_unpaired ~ trout_avg)
 plot(data=megakey, minnow_prop_unpaired ~ minnow_avg)
@@ -479,24 +479,19 @@ plot(data=megakey, roach_prop_unpaired ~ roach_avg)
 plot(data=megakey, perch_prop_unpaired ~ perch_avg)
 plot(data=megakey, pike_prop_unpaired ~ pike_avg)
 
-with(megakey, plot(rho_trout ~ trout_prop_unpaired, cex = n_years/20))
-with(megakey, plot(rho_minnow ~ minnow_prop_unpaired, cex = n_years/20))
-with(megakey, plot(rho_roach ~ roach_prop_unpaired, cex = n_years/20))
-with(megakey, plot(rho_perch ~ perch_prop_unpaired, cex = n_years/20))
-with(megakey, plot(rho_pike ~ pike_prop_unpaired, cex = n_years/20))
-
 megakey$pike0s <- (megakey$n_years-megakey$pike_n_gt0_one-megakey$pike_n_gt0_two)/megakey$n_years
 megakey$trout0s <- (megakey$n_years-megakey$trout_n_gt0_one-megakey$trout_n_gt0_two)/megakey$n_years
 
 plot(data=megakey, pike0s ~ pike_avg)
 plot(data=megakey, trout_avg ~ trout0s)
 
-megakey$trout_avg <- mean(megakey$trout_avg_site1, megakey$trout_avg_site2)
 
 plot(data=megakey, trout_prop_unpaired ~ trout_avg)
 
-plot(data=megakey, rho_trout ~ trout_avg)
-summary(lm(data=megakey, rho_trout ~ trout_avg))
+plot(data=megakey, rho_trout ~ trout_avg, col=(as.numeric(megakey$flowconn)+1))
+summary(m1 <- lm(data=megakey, rho_trout ~ trout_avg + flowconn01 * rivdist * over_frag01))
+
+plot_model(m1, type="int")
 
 head(megakey)
 
@@ -529,7 +524,7 @@ megakey$over_frag01[megakey$over_frag] <- 1
 
 megakey$rivdistlg <- log(megakey$rivdist)
 
-megakey$river_id <- "29000"
+megakey$river_id <- "74000"
 
 
 
@@ -609,7 +604,7 @@ VIF(m1)
 # Save Megakey here for consolidation of many rivers later?
 
 
-write.table(megakey, file=paste0("C:/jobb/disty/out_files/megakeys/mega_key_29000_",Sys.Date(),".csv"))
+write.table(megakey, file=paste0("C:/jobb/disty/out_files/megakeys/mega_key_74000_",Sys.Date(),".csv"))
 
 
 head(megakey)
@@ -630,7 +625,7 @@ portfolio <- megakey3 %>% filter(over_frag == F) %>% group_by(fragmentID) %>%
             fragment_size_max=max(rivdist), 
             fragment_size_mean=mean(rivdist),
             n_pairs=n(),
-            river="29000")
+            river="74000")
 
 ggplot(data=portfolio, aes(x=fragment_size_max, y=mean_rho_trout, size=n_pairs))+
   geom_point()
@@ -654,7 +649,7 @@ ggplot(data=portfolio, aes(x=fragment_size_max, y=mean_rho_salmon, size=n_pairs)
 cor.test(portfolio$mean_rho_trout, portfolio$fragment_size_mean)
 summary(lm(data=portfolio, mean_rho_trout~fragment_size_mean+fragment_size_mean))
 
-write.table(portfolio, file="C:/jobb/disty/out_files/29000.csv", row.names = F, sep=";", dec=".")
+write.table(portfolio, file="C:/jobb/disty/out_files/74000.csv", row.names = F, sep=";", dec=".")
 
 ##### What about persistence?
 
@@ -674,7 +669,7 @@ step3 <- step2 %>% group_by(fragmentID) %>% summarise(mean_trout_occ = mean(ÖRK
 
 portfolio2 <- portfolio %>% inner_join(step3, by = c("fragmentID"))
 
-write.table(portfolio2, file="C:/jobb/disty/out_files/occ/29000.csv", row.names = F, sep=";", dec=".")
+write.table(portfolio2, file="C:/jobb/disty/out_files/occ/74000.csv", row.names = F, sep=";", dec=".")
 
 ##### Portfolio analysis
 
