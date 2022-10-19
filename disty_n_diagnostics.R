@@ -8,7 +8,7 @@ setwd("C:/jobb/disty")
 
 
 library(pacman)
-p_load(sp, rgdal, riverdist, tidyr, dplyr, ggplot2, regclass, sjPlot, lme4, gridExtra, nlme, ggExtra, lmerMultiMember, MASS)
+p_load(sp, rgdal, riverdist, tidyr, dplyr, ggplot2, regclass, sjPlot, lme4, gridExtra, nlme, ggExtra, lmerMultiMember, MASS, scales)
 
 
 ### Function
@@ -389,6 +389,45 @@ write.table(test_add5, file="C:/jobb/disty/fulldata_2022_10_18.csv", row.names=F
 
 ###
 
+alldata <- read.csv(file="C:/jobb/disty/fulldata_2022_10_18.csv", sep=";", dec=".", encoding="UTF-8")
+
+
+###
+
+alldata1 <- alldata %>% filter(n_years>5)
+
+alldata1$trout_prop_unpaired <- alldata1$trout_n_gt0_one/alldata1$n_years
+alldata1$minnow_prop_unpaired <- alldata1$minnow_n_gt0_one/alldata1$n_years
+alldata1$roach_prop_unpaired <- alldata1$roach_n_gt0_one/alldata1$n_years
+alldata1$perch_prop_unpaired <- alldata1$perch_n_gt0_one/alldata1$n_years
+alldata1$pike_prop_unpaired <- alldata1$pike_n_gt0_one/alldata1$n_years
+
+
+alldata1$sqrt_rivdist <- sqrt(alldata1$rivdist)
+alldata1$sqrt_pythdist <- sqrt(alldata1$pythdist)
+
+### Make random effects for multimembership 
+
+alldata1$site1 <- alldata1$fromid
+alldata1$site2 <- alldata1$toid
+alldata1$random_site1 <- paste0(alldata1$river_id,"_",alldata1$site1)
+alldata1$random_site2 <- paste0(alldata1$river_id,"_",alldata1$site2)
+alldata1$random_site3 <- paste0(alldata1$random_site1,",",alldata1$random_site2)
+
+membership_matrix1 <- weights_from_vector(alldata1$random_site3)
+
+### Make the important filtration
+
+pike <- alldata1 %>% filter(pike_n_gt0_two > 0)
+trout <- alldata1 %>% filter(trout_n_gt0_two > 0)
+roach <- alldata1 %>% filter(roach_n_gt0_two > 0)
+minnow <- alldata1 %>% filter(minnow_n_gt0_two > 0)
+perch <- alldata1 %>% filter(perch_n_gt0_two > 0)
+
+minnow <- minnow[-which(minnow$minnow_avg > 1000),]
+
+###
+
 
 m1 <- lme4::lmer(data=trout, trout_rho ~ log(trout_avg+1) + rivdistlg * flowconn01 * over_frag01 + (1|river_id))
 summary(m1)
@@ -440,6 +479,160 @@ roach %>% ggplot(aes(x = roach_prop_unpaired, y = roach_rho)) + geom_point(alpha
 minnow %>% ggplot(aes(x = minnow_prop_unpaired, y = minnow_rho)) + geom_point(alpha = 0.1) + theme_classic()
 
 perch %>% ggplot(aes(x = perch_prop_unpaired, y = perch_rho, size=n_years)) + geom_point(alpha = 0.1) + geom_smooth(method="lm") + theme_classic()
+
+
+
+
+### 
+
+trout %>% ggplot(aes(x = trout_prop_unpaired, y = trout_avg)) + geom_point(alpha = 0.1) + theme_classic()
+
+pike %>% ggplot(aes(x = pike_prop_unpaired, y = pike_avg)) + geom_point(alpha = 0.1) + theme_classic()
+
+roach %>% ggplot(aes(x = roach_prop_unpaired, y = roach_avg)) + geom_point(alpha = 0.1) + theme_classic()
+
+minnow %>% ggplot(aes(x = minnow_prop_unpaired, y = minnow_avg)) + geom_point(alpha = 0.1) + theme_classic()
+
+perch %>% ggplot(aes(x = perch_prop_unpaired, y = perch_avg, size=n_years)) + geom_point(alpha = 0.1) + theme_classic()
+
+
+###
+
+trout2_fc <- trout %>% filter(!is.na(trout_rho)) %>% filter(flowconn01 == 1)
+minnow2_fc <- minnow %>% filter(!is.na(minnow_rho)) %>% filter(flowconn01 == 1)
+roach2_fc <- roach %>% filter(!is.na(roach_rho)) %>% filter(flowconn01 == 1)
+perch2_fc <- perch %>% filter(!is.na(perch_rho)) %>% filter(flowconn01 == 1)
+pike2_fc <- pike %>% filter(!is.na(pike_rho)) %>% filter(flowconn01 == 1)
+
+trout2 <- trout %>% filter(!is.na(trout_rho))
+minnow2 <- minnow %>% filter(!is.na(minnow_rho))
+roach2 <- roach %>% filter(!is.na(roach_rho)) 
+perch2 <- perch %>% filter(!is.na(perch_rho))
+pike2 <- pike %>% filter(!is.na(pike_rho))
+
+membership_matrix_trout  <- weights_from_vector(trout2$random_site3)
+membership_matrix_minnow  <- weights_from_vector(minnow2$random_site3)
+membership_matrix_roach <- weights_from_vector(roach2$random_site3)
+membership_matrix_perch <- weights_from_vector(perch2$random_site3)
+membership_matrix_pike <- weights_from_vector(pike2$random_site3)
+
+membership_matrix_trout_fc  <- weights_from_vector(trout2_fc$random_site3)
+membership_matrix_minnow_fc  <- weights_from_vector(minnow2_fc$random_site3)
+membership_matrix_roach_fc <- weights_from_vector(roach2_fc$random_site3)
+membership_matrix_perch_fc <- weights_from_vector(perch2_fc$random_site3)
+membership_matrix_pike_fc <- weights_from_vector(pike2_fc$random_site3)
+
+### Make some models
+
+summary(m_main1 <- lmerMultiMember::lmer(data=trout2_fc, rho_trout~sqrt_rivdist*over_frag01+trout_avg + (1|river_id) + (1|site), memberships = list(site=membership_matrix_trout_fc)))
+summary(m_main2 <- lmerMultiMember::lmer(data=minnow2_fc, rho_minnow~sqrt_rivdist*over_frag01+minnow_avg + (1|river_id) + (1|site), memberships = list(site=membership_matrix_minnow_fc)))
+summary(m_main3 <- lmerMultiMember::lmer(data=roach2_fc, rho_roach~sqrt_rivdist*over_frag01+roach_avg + (1|river_id) + (1|site), memberships = list(site=membership_matrix_roach_fc)))
+summary(m_main4 <- lmerMultiMember::lmer(data=perch2_fc, rho_perch~sqrt_rivdist*over_frag01+perch_avg + (1|river_id) + (1|site), memberships = list(site=membership_matrix_perch_fc)))
+summary(m_main5 <- lmerMultiMember::lmer(data=pike2_fc, rho_pike~sqrt_rivdist*over_frag01+pike_avg + (1|river_id) + (1|site), memberships = list(site=membership_matrix_pike_fc)))
+
+plot_model(m_main1, type = "pred", terms=c("sqrt_rivdist", "over_frag01 [0,1]"))+theme_classic()
+plot_model(m_main2, type = "pred", terms=c("sqrt_rivdist", "over_frag01 [0,1]"))+theme_classic()
+plot_model(m_main3, type = "pred", terms=c("sqrt_rivdist", "over_frag01 [0,1]"))+theme_classic()
+plot_model(m_main4, type = "pred", terms=c("sqrt_rivdist", "over_frag01 [0,1]"))+theme_classic()
+plot_model(m_main5, type = "pred", terms=c("sqrt_rivdist", "over_frag01 [0,1]"))+theme_classic()
+
+plot_model(m_main1, type = "pred", terms=c("trout_avg"))+theme_classic()
+plot_model(m_main2, type = "pred", terms=c("minnow_avg"))+theme_classic()
+plot_model(m_main3, type = "pred", terms=c("roach_avg"))+theme_classic()
+plot_model(m_main4, type = "pred", terms=c("perch_avg"))+theme_classic()
+plot_model(m_main5, type = "pred", terms=c("pike_avg"))+theme_classic()
+
+### Make some plots
+
+m_main1_pred <- ggeffects::ggpredict(m_main1, terms=c("sqrt_rivdist", "over_frag01 [0,1]"), type="fe")
+m_main2_pred <- ggeffects::ggpredict(m_main2, terms=c("sqrt_rivdist", "over_frag01 [0,1]"), type="fe")
+m_main3_pred <- ggeffects::ggpredict(m_main3, terms=c("sqrt_rivdist", "over_frag01 [0,1]"), type="fe")
+m_main4_pred <- ggeffects::ggpredict(m_main4, terms=c("sqrt_rivdist", "over_frag01 [0,1]"), type="fe")
+m_main5_pred <- ggeffects::ggpredict(m_main5, terms=c("sqrt_rivdist", "over_frag01 [0,1]"), type="fe")
+
+mp1 <- ggplot(data=m_main1_pred, aes(x=x, y=predicted, colour=group))+
+  geom_line()+
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), linetype = 2, alpha=0.2)+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  #facet_wrap(facets = vars(facet))+
+  geom_abline(intercept=0, slope=0, linetype="dashed")+
+  geom_rug(data=trout2_fc %>% filter(over_frag01==1), aes(x=sqrt_rivdist), color=hue_pal()(2)[2], sides="t", inherit.aes = F)+
+  geom_rug(data=trout2_fc %>% filter(over_frag01==0), aes(x=sqrt_rivdist), color=hue_pal()(2)[1], sides="b", inherit.aes = F)+
+  theme_classic()
+
+
+mp2 <- ggplot(data=m_main2_pred, aes(x=x, y=predicted, colour=group))+
+  geom_line()+
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), linetype = 2, alpha=0.2)+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  #facet_wrap(facets = vars(facet))+
+  geom_abline(intercept=0, slope=0, linetype="dashed")+
+  geom_rug(data=minnow2_fc %>% filter(over_frag01==1), aes(x=sqrt_rivdist), color=hue_pal()(2)[2], sides="t", inherit.aes = F)+
+  geom_rug(data=minnow2_fc %>% filter(over_frag01==0), aes(x=sqrt_rivdist), color=hue_pal()(2)[1], sides="b", inherit.aes = F)+
+  theme_classic()
+
+
+mp3 <- ggplot(data=m_main3_pred, aes(x=x, y=predicted, colour=group))+
+  geom_line()+
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), linetype = 2, alpha=0.2)+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  #facet_wrap(facets = vars(facet))+
+  geom_abline(intercept=0, slope=0, linetype="dashed")+
+  geom_rug(data=roach2_fc %>% filter(over_frag01==1), aes(x=sqrt_rivdist), color=hue_pal()(2)[2], sides="t", inherit.aes = F)+
+  geom_rug(data=roach2_fc %>% filter(over_frag01==0), aes(x=sqrt_rivdist), color=hue_pal()(2)[1], sides="b", inherit.aes = F)+
+  theme_classic()
+
+
+mp4 <- ggplot(data=m_main4_pred, aes(x=x, y=predicted, colour=group))+
+  geom_line()+
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), linetype = 2, alpha=0.2)+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  #facet_wrap(facets = vars(facet))+
+  geom_abline(intercept=0, slope=0, linetype="dashed")+
+  geom_rug(data=perch2_fc %>% filter(over_frag01==1), aes(x=sqrt_rivdist), color=hue_pal()(2)[2], sides="t", inherit.aes = F)+
+  geom_rug(data=perch2_fc %>% filter(over_frag01==0), aes(x=sqrt_rivdist), color=hue_pal()(2)[1], sides="b", inherit.aes = F)+
+  theme_classic()
+
+
+mp5 <- ggplot(data=m_main5_pred, aes(x=x, y=predicted, colour=group))+
+  geom_line()+
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), linetype = 2, alpha=0.2)+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  #facet_wrap(facets = vars(facet))+
+  geom_abline(intercept=0, slope=0, linetype="dashed")+
+  geom_rug(data=pike2_fc %>% filter(over_frag01==1), aes(x=sqrt_rivdist), color=hue_pal()(2)[2], sides="t", inherit.aes = F)+
+  geom_rug(data=pike2_fc %>% filter(over_frag01==0), aes(x=sqrt_rivdist), color=hue_pal()(2)[1], sides="b", inherit.aes = F)+
+  theme_classic()
+
+
+
+grid.arrange(mp1, mp2, mp3, mp4, mp5)
+
+##### 
+
+
+
+### 3. portfolio effect
+
+outfiles <- Sys.glob("C:/jobb/disty/out_files/occ/*.csv")
+
+consolidate_portfolio <- read.csv(outfiles[1], sep=";", dec=".")
+for(i in 2:length(outfiles)){
+  consolidate_portfolio <- rbind(consolidate_portfolio, read.csv(outfiles[i], sep=";", dec="."))
+}
+
+
+
+
+
+
+
+
 
 
 
