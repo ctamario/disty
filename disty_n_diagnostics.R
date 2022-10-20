@@ -630,18 +630,72 @@ for(i in 2:length(f_table_list)){
 
 f_table$unique_frag <- paste0(f_table$river_id, "_", f_table$fragmentID)
 
-#Testing to merge 
+## Testing to merge 
 
 alldata1_frag <- alldata1 %>% inner_join(f_table, by=c("fromXKOORLOK"="XKOORLOK", "fromYKOORLOK"="YKOORLOK"))
 
 table(alldata1_frag$unique_frag)
 
-portf <- alldata1_frag %>% filter(over_frag01 == 0) %>% filter(vtyp_same == 1) %>%
-  group_by(unique_frag) %>% summarise(trout_rho_mean = mean(trout_rho, na.rm = T), n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 5) 
+## Portfolio effect by fragment size PROXY
 
-portf %>% ggplot(aes(x=frag_size, y=trout_rho_mean)) + geom_point()
+portf_trout <- alldata1_frag %>% filter(over_frag01 == 0) %>% filter(vtyp_same == 1) %>%
+  group_by(unique_frag, river_id.x) %>% filter(trout_n_gt0_two > 0) %>%
+  summarise(trout_rho_mean = mean(trout_rho, na.rm = T), 
+            n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 3) 
 
-summary(lm(data=portf, trout_rho_mean ~ frag_size))
+portf_minnow <- alldata1_frag %>% filter(over_frag01 == 0) %>% filter(vtyp_same == 1) %>%
+  group_by(unique_frag, river_id.x) %>% filter(minnow_n_gt0_two > 0) %>%
+  summarise(minnow_rho_mean = mean(minnow_rho, na.rm = T), 
+            n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 3) 
+
+portf_roach <- alldata1_frag %>% filter(over_frag01 == 0) %>% filter(vtyp_same == 1) %>%
+  group_by(unique_frag, river_id.x) %>% filter(roach_n_gt0_two > 0) %>%
+  summarise(roach_rho_mean = mean(roach_rho, na.rm = T), 
+            n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 3) 
+
+portf_perch <- alldata1_frag %>% filter(over_frag01 == 0) %>% filter(vtyp_same == 1) %>%
+  group_by(unique_frag, river_id.x) %>% filter(perch_n_gt0_two > 0) %>%
+  summarise(perch_rho_mean = mean(perch_rho, na.rm = T), 
+            n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 3) 
+
+portf_pike <- alldata1_frag %>% filter(over_frag01 == 0) %>% filter(vtyp_same == 1) %>%
+  group_by(unique_frag, river_id.x) %>% filter(pike_n_gt0_two > 0) %>%
+  summarise(pike_rho_mean = mean(pike_rho, na.rm = T), 
+            n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 3) 
+
+
+pl1 <- portf_trout %>% ggplot(aes(x=frag_size, y=trout_rho_mean)) + 
+  geom_point()+ geom_smooth(method="lm", color="black") + theme_classic()
+pl2 <- portf_minnow %>% ggplot(aes(x=frag_size, y=minnow_rho_mean)) + 
+  geom_point() + geom_smooth(method="lm", color="black") + theme_classic()
+pl3 <- portf_roach %>% ggplot(aes(x=frag_size, y=roach_rho_mean)) + 
+  geom_point() + geom_smooth(method="lm", color="black") + theme_classic()
+pl4 <- portf_perch %>% ggplot(aes(x=frag_size, y=perch_rho_mean)) + 
+  geom_point() + geom_smooth(method="lm", color="black") + theme_classic()
+pl5 <- portf_pike %>% ggplot(aes(x=frag_size, y=pike_rho_mean)) + 
+  geom_point() + geom_smooth(method="lm", color="black") + theme_classic()
+
+grid.arrange(pl1, pl2, pl3, pl4, pl5, nrow=1)
+
+dev.copy2pdf(file="C:/jobb/disty/figs_new/portfolio.pdf", height=3, width=15)
+
+summary(lmer(data=portf_trout, trout_rho_mean ~ frag_size + (1|river_id.x)))
+summary(lmer(data=portf_minnow, minnow_rho_mean ~ frag_size + (1|river_id.x)))
+summary(lmer(data=portf_roach, roach_rho_mean ~ frag_size + (1|river_id.x)))
+summary(lmer(data=portf_perch, perch_rho_mean ~ frag_size + (1|river_id.x)))
+summary(lmer(data=portf_pike, pike_rho_mean ~ frag_size + (1|river_id.x)))
+
+summary(lm(data=portf_trout2, trout_rho_mean ~ frag_size))
+summary(lm(data=portf_minnow2, minnow_rho_mean ~ frag_size))
+summary(lm(data=portf_roach, roach_rho_mean ~ frag_size))
+summary(lm(data=portf_perch, perch_rho_mean ~ frag_size))
+summary(lm(data=portf_pike, pike_rho_mean ~ frag_size))
+
+## 
+
+portf_trout2 <- portf_trout[-order(portf_trout$frag_size)[1:2],]
+
+portf_minnow2 <- portf_minnow[-order(portf_minnow$frag_size)[1],]
 
 ### 4. portfolio effect
 
