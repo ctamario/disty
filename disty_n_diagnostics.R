@@ -617,7 +617,34 @@ grid.arrange(mp1, mp2, mp3, mp4, mp5)
 
 
 
-### 3. portfolio effect
+### 3. Fragment table fun
+
+
+
+f_table_list <- Sys.glob("C:/jobb/disty/out_files/f_tables/use_these_all/*.csv")
+
+f_table <- read.csv(f_table_list[1], sep=" ")
+for(i in 2:length(f_table_list)){
+  f_table <- rbind(f_table, read.csv(f_table_list[i], sep=" "))
+}
+
+f_table$unique_frag <- paste0(f_table$river_id, "_", f_table$fragmentID)
+
+#Testing to merge 
+
+alldata1_frag <- alldata1 %>% inner_join(f_table, by=c("fromXKOORLOK"="XKOORLOK", "fromYKOORLOK"="YKOORLOK"))
+
+table(alldata1_frag$unique_frag)
+
+portf <- alldata1_frag %>% filter(over_frag01 == 0) %>% filter(vtyp_same == 1) %>%
+  group_by(unique_frag) %>% summarise(trout_rho_mean = mean(trout_rho, na.rm = T), n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 5) 
+
+portf %>% ggplot(aes(x=frag_size, y=trout_rho_mean)) + geom_point()
+
+summary(lm(data=portf, trout_rho_mean ~ frag_size))
+
+### 4. portfolio effect
+
 
 outfiles <- Sys.glob("C:/jobb/disty/out_files/occ/*.csv")
 
@@ -625,11 +652,6 @@ consolidate_portfolio <- read.csv(outfiles[1], sep=";", dec=".")
 for(i in 2:length(outfiles)){
   consolidate_portfolio <- rbind(consolidate_portfolio, read.csv(outfiles[i], sep=";", dec="."))
 }
-
-
-
-
-
 
 
 
