@@ -406,6 +406,17 @@ alldata1$pike_prop_unpaired <- alldata1$pike_n_gt0_one/alldata1$n_years
 alldata1$sqrt_rivdist <- sqrt(alldata1$rivdist)
 alldata1$sqrt_pythdist <- sqrt(alldata1$pythdist)
 
+# We need occurrence data ...
+
+raw_occ <- rawdf %>% group_by(XYKOORLOK, XKOORLOK, YKOORLOK) %>% summarise(trout_occ = mean(ÖRKLASS_mean),
+                                                                          minnow_occ = mean(ELKLASS_mean),
+                                                                          roach_occ = mean(MÖKLASS_mean),
+                                                                          perch_occ = mean(ABKLASS_mean),
+                                                                          pike_occ = mean(GÄKLASS_mean),
+                                                                          n_occasions = n())
+
+alldata1 <- alldata1 %>% left_join(raw_occ, by=c("fromXY" = "XYKOORLOK"))
+
 ### Make random effects for multimembership 
 
 alldata1$site1 <- alldata1$fromid
@@ -415,6 +426,9 @@ alldata1$random_site2 <- paste0(alldata1$river_id,"_",alldata1$site2)
 alldata1$random_site3 <- paste0(alldata1$random_site1,",",alldata1$random_site2)
 
 membership_matrix1 <- weights_from_vector(alldata1$random_site3)
+
+
+
 
 ### Make the important filtration
 
@@ -524,11 +538,11 @@ membership_matrix_pike_fc <- weights_from_vector(pike2_fc$random_site3)
 
 ### Make some models
 
-summary(m_main1 <- lmerMultiMember::lmer(data=trout2_fc, rho_trout~sqrt_rivdist*over_frag01+trout_avg + (1|river_id) + (1|site), memberships = list(site=membership_matrix_trout_fc)))
-summary(m_main2 <- lmerMultiMember::lmer(data=minnow2_fc, rho_minnow~sqrt_rivdist*over_frag01+minnow_avg + (1|river_id) + (1|site), memberships = list(site=membership_matrix_minnow_fc)))
-summary(m_main3 <- lmerMultiMember::lmer(data=roach2_fc, rho_roach~sqrt_rivdist*over_frag01+roach_avg + (1|river_id) + (1|site), memberships = list(site=membership_matrix_roach_fc)))
-summary(m_main4 <- lmerMultiMember::lmer(data=perch2_fc, rho_perch~sqrt_rivdist*over_frag01+perch_avg + (1|river_id) + (1|site), memberships = list(site=membership_matrix_perch_fc)))
-summary(m_main5 <- lmerMultiMember::lmer(data=pike2_fc, rho_pike~sqrt_rivdist*over_frag01+pike_avg + (1|river_id) + (1|site), memberships = list(site=membership_matrix_pike_fc)))
+summary(m_main1 <- lmerMultiMember::lmer(data=trout2_fc, rho_trout~sqrt_rivdist*over_frag01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_trout_fc)))
+summary(m_main2 <- lmerMultiMember::lmer(data=minnow2_fc, rho_minnow~sqrt_rivdist*over_frag01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_minnow_fc)))
+summary(m_main3 <- lmerMultiMember::lmer(data=roach2_fc, rho_roach~sqrt_rivdist*over_frag01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_roach_fc)))
+summary(m_main4 <- lmerMultiMember::lmer(data=perch2_fc, rho_perch~sqrt_rivdist*over_frag01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_perch_fc)))
+summary(m_main5 <- lmerMultiMember::lmer(data=pike2_fc, rho_pike~sqrt_rivdist*over_frag01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_pike_fc)))
 
 plot_model(m_main1, type = "pred", terms=c("sqrt_rivdist", "over_frag01 [0,1]"))+theme_classic()
 plot_model(m_main2, type = "pred", terms=c("sqrt_rivdist", "over_frag01 [0,1]"))+theme_classic()
@@ -559,7 +573,7 @@ mp1 <- ggplot(data=m_main1_pred, aes(x=x, y=predicted, colour=group))+
   geom_abline(intercept=0, slope=0, linetype="dashed")+
   geom_rug(data=trout2_fc %>% filter(over_frag01==1), aes(x=sqrt_rivdist), color=hue_pal()(2)[2], sides="t", inherit.aes = F)+
   geom_rug(data=trout2_fc %>% filter(over_frag01==0), aes(x=sqrt_rivdist), color=hue_pal()(2)[1], sides="b", inherit.aes = F)+
-  theme_classic()
+  theme_classic() + theme(legend.position = "none")
 
 
 mp2 <- ggplot(data=m_main2_pred, aes(x=x, y=predicted, colour=group))+
@@ -571,7 +585,7 @@ mp2 <- ggplot(data=m_main2_pred, aes(x=x, y=predicted, colour=group))+
   geom_abline(intercept=0, slope=0, linetype="dashed")+
   geom_rug(data=minnow2_fc %>% filter(over_frag01==1), aes(x=sqrt_rivdist), color=hue_pal()(2)[2], sides="t", inherit.aes = F)+
   geom_rug(data=minnow2_fc %>% filter(over_frag01==0), aes(x=sqrt_rivdist), color=hue_pal()(2)[1], sides="b", inherit.aes = F)+
-  theme_classic()
+  theme_classic() + theme(legend.position = "none")
 
 
 mp3 <- ggplot(data=m_main3_pred, aes(x=x, y=predicted, colour=group))+
@@ -583,7 +597,7 @@ mp3 <- ggplot(data=m_main3_pred, aes(x=x, y=predicted, colour=group))+
   geom_abline(intercept=0, slope=0, linetype="dashed")+
   geom_rug(data=roach2_fc %>% filter(over_frag01==1), aes(x=sqrt_rivdist), color=hue_pal()(2)[2], sides="t", inherit.aes = F)+
   geom_rug(data=roach2_fc %>% filter(over_frag01==0), aes(x=sqrt_rivdist), color=hue_pal()(2)[1], sides="b", inherit.aes = F)+
-  theme_classic()
+  theme_classic() + theme(legend.position = "none")
 
 
 mp4 <- ggplot(data=m_main4_pred, aes(x=x, y=predicted, colour=group))+
@@ -595,7 +609,7 @@ mp4 <- ggplot(data=m_main4_pred, aes(x=x, y=predicted, colour=group))+
   geom_abline(intercept=0, slope=0, linetype="dashed")+
   geom_rug(data=perch2_fc %>% filter(over_frag01==1), aes(x=sqrt_rivdist), color=hue_pal()(2)[2], sides="t", inherit.aes = F)+
   geom_rug(data=perch2_fc %>% filter(over_frag01==0), aes(x=sqrt_rivdist), color=hue_pal()(2)[1], sides="b", inherit.aes = F)+
-  theme_classic()
+  theme_classic() + theme(legend.position = "none")
 
 
 mp5 <- ggplot(data=m_main5_pred, aes(x=x, y=predicted, colour=group))+
@@ -607,11 +621,15 @@ mp5 <- ggplot(data=m_main5_pred, aes(x=x, y=predicted, colour=group))+
   geom_abline(intercept=0, slope=0, linetype="dashed")+
   geom_rug(data=pike2_fc %>% filter(over_frag01==1), aes(x=sqrt_rivdist), color=hue_pal()(2)[2], sides="t", inherit.aes = F)+
   geom_rug(data=pike2_fc %>% filter(over_frag01==0), aes(x=sqrt_rivdist), color=hue_pal()(2)[1], sides="b", inherit.aes = F)+
-  theme_classic()
+  theme_classic() + theme(legend.position = "none")
 
 
 
-grid.arrange(mp1, mp2, mp3, mp4, mp5)
+grid.arrange(mp1, mp2, mp3, mp4, mp5, nrow=1)
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/synchrony_distance_between.pdf", height=3, width=15)
+
+
+
 
 ##### 
 
@@ -632,35 +650,40 @@ f_table$unique_frag <- paste0(f_table$river_id, "_", f_table$fragmentID)
 
 ## Testing to merge 
 
-alldata1_frag <- alldata1 %>% inner_join(f_table, by=c("fromXKOORLOK"="XKOORLOK", "fromYKOORLOK"="YKOORLOK"))
+alldata1_frag <- alldata1 %>% inner_join(dplyr::select(f_table, XKOORLOK, YKOORLOK, fragmentID, unique_frag), by=c("fromXKOORLOK"="XKOORLOK", "fromYKOORLOK"="YKOORLOK"))
 
 table(alldata1_frag$unique_frag)
 
-## Portfolio effect by fragment size PROXY
+## 3.5 Synchrony by fragment size PROXY
 
 portf_trout <- alldata1_frag %>% filter(over_frag01 == 0) %>% filter(vtyp_same == 1) %>%
   group_by(unique_frag, river_id.x) %>% filter(trout_n_gt0_two > 0) %>%
   summarise(trout_rho_mean = mean(trout_rho, na.rm = T), 
+            trout_avg_mean = mean(trout_avg, na.rm = T),
             n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 3) 
 
-portf_minnow <- alldata1_frag %>% filter(over_frag01 == 0) %>% filter(vtyp_same == 1) %>%
+portf_minnow <- alldata1_frag %>% filter(minnow_avg < 1000) %>% filter(over_frag01 == 0) %>% filter(vtyp_same == 1) %>%
   group_by(unique_frag, river_id.x) %>% filter(minnow_n_gt0_two > 0) %>%
   summarise(minnow_rho_mean = mean(minnow_rho, na.rm = T), 
+            minnow_avg_mean = mean(minnow_avg, na.rm = T),
             n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 3) 
 
 portf_roach <- alldata1_frag %>% filter(over_frag01 == 0) %>% filter(vtyp_same == 1) %>%
   group_by(unique_frag, river_id.x) %>% filter(roach_n_gt0_two > 0) %>%
   summarise(roach_rho_mean = mean(roach_rho, na.rm = T), 
+            roach_avg_mean = mean(roach_avg, na.rm = T),
             n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 3) 
 
 portf_perch <- alldata1_frag %>% filter(over_frag01 == 0) %>% filter(vtyp_same == 1) %>%
   group_by(unique_frag, river_id.x) %>% filter(perch_n_gt0_two > 0) %>%
   summarise(perch_rho_mean = mean(perch_rho, na.rm = T), 
+            perch_avg_mean = mean(perch_avg, na.rm = T),
             n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 3) 
 
 portf_pike <- alldata1_frag %>% filter(over_frag01 == 0) %>% filter(vtyp_same == 1) %>%
   group_by(unique_frag, river_id.x) %>% filter(pike_n_gt0_two > 0) %>%
   summarise(pike_rho_mean = mean(pike_rho, na.rm = T), 
+            pike_avg_mean = mean(pike_avg, na.rm = T),
             n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 3) 
 
 
@@ -675,12 +698,26 @@ pl4 <- portf_perch %>% ggplot(aes(x=frag_size, y=perch_rho_mean)) +
 pl5 <- portf_pike %>% ggplot(aes(x=frag_size, y=pike_rho_mean)) + 
   geom_point() + geom_smooth(method="lm", color="black") + theme_classic()
 
+pl6 <- portf_trout %>% ggplot(aes(x=frag_size, y=trout_avg_mean)) + 
+  geom_point()+ geom_smooth(method="lm", color="black") + theme_classic()
+pl7 <- portf_minnow %>% ggplot(aes(x=frag_size, y=minnow_avg_mean)) + 
+  geom_point() + geom_smooth(method="lm", color="black") + theme_classic()
+pl8 <- portf_roach %>% ggplot(aes(x=frag_size, y=roach_avg_mean)) + 
+  geom_point() + geom_smooth(method="lm", color="black") + theme_classic()
+pl9 <- portf_perch %>% ggplot(aes(x=frag_size, y=perch_avg_mean)) + 
+  geom_point() + geom_smooth(method="lm", color="black") + theme_classic()
+pl10 <- portf_pike %>% ggplot(aes(x=frag_size, y=pike_avg_mean)) + 
+  geom_point() + geom_smooth(method="lm", color="black") + theme_classic()
+
 grid.arrange(pl1, pl2, pl3, pl4, pl5, nrow=1)
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/portfolio.pdf", height=3, width=15)
+grid.arrange(pl6, pl7, pl8, pl9, pl10, nrow=1)
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/density_fragment_size.pdf", height=3, width=15)
 
-dev.copy2pdf(file="C:/jobb/disty/figs_new/portfolio.pdf", height=3, width=15)
 
-summary(lmer(data=portf_trout, trout_rho_mean ~ frag_size + (1|river_id.x)))
-summary(lmer(data=portf_minnow, minnow_rho_mean ~ frag_size + (1|river_id.x)))
+
+summary(lmer(data=portf_trout2, trout_rho_mean ~ frag_size + (1|river_id.x)))
+summary(lmer(data=portf_minnow2, minnow_rho_mean ~ frag_size + (1|river_id.x)))
 summary(lmer(data=portf_roach, roach_rho_mean ~ frag_size + (1|river_id.x)))
 summary(lmer(data=portf_perch, perch_rho_mean ~ frag_size + (1|river_id.x)))
 summary(lmer(data=portf_pike, pike_rho_mean ~ frag_size + (1|river_id.x)))
@@ -700,12 +737,131 @@ portf_minnow2 <- portf_minnow[-order(portf_minnow$frag_size)[1],]
 ### 4. portfolio effect
 
 
+occ_table <- alldata1_frag %>% group_by(fromXY, unique_frag) %>% summarise(trout_occ_mean = mean(trout_occ),
+                                                                           minnow_occ_mean = mean(minnow_occ),
+                                                                           roach_occ_mean = mean(roach_occ),
+                                                                           perch_occ_mean = mean(perch_occ),
+                                                                           pike_occ_mean = mean(pike_occ),
+                                                                           n_occasions=mean(n_occasions))
+#occ_table2 <- occ_table %>% group_by(unique_frag) %>% summarise(trout_occ_mean2 = mean(trout_occ_mean), n_sites = n())
+
+portf_trout2 <- alldata1_frag %>% filter(over_frag01 == 0) %>% 
+  group_by(unique_frag, river_id) %>% filter(trout_n_gt0_two > 0) %>%
+  summarise(trout_rho_mean = mean(trout_rho, na.rm = T), 
+            trout_avg_mean = mean(trout_avg, na.rm = T),
+            trout_occ_mean1 = mean(trout_occ, na.rm = T),
+            n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 3) %>% left_join(occ_table, by="unique_frag")
+
+portf_trout2 <- portf_trout2 %>% left_join(occ_table, by="unique_frag")
+
+plot(data=portf_trout2, trout_occ_mean2~trout_occ_mean1)
+
+summary(m_pf1 <- lme4::glmer(data=portf_trout2, trout_occ_mean ~ trout_rho_mean*frag_size + (1|river_id) + (1|unique_frag), family="binomial", weights=n_occasions))
+
+plot_model(m_pf1, type="pred", terms=c("frag_size[all]","trout_rho_mean[0.1,0.9]"))+theme_classic()
+pdata_pf1 <- ggeffects::ggpredict(m_pf1, type="fe", terms=c("frag_size[all]","trout_rho_mean[0.1,0.9]"))
+
+
+ggplot(data=pdata_pf1, aes(x=x, y=predicted, colour=group))+
+  geom_line()+
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.2, linetype="dashed")+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  geom_abline(intercept=c(0,1), slope=0, linetype="dashed")+
+  #scale_y_continuous(limits = c(0,1.1))+
+  ylab("Persistence (mean occurrence)")+
+  xlab("Fragment size proxy (sqrt)")+
+  theme_classic()
+
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/portfolio_effect_trout.pdf", height=3, width=4)
+
+
+portf_minnow2 <- alldata1_frag %>% filter(over_frag01 == 0) %>% 
+  group_by(unique_frag, river_id) %>% filter(minnow_n_gt0_two > 0) %>%
+  summarise(minnow_rho_mean = mean(minnow_rho, na.rm = T), 
+            minnow_avg_mean = mean(minnow_avg, na.rm = T),
+            n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 3) %>% left_join(occ_table, by="unique_frag")
+
+summary(m_pf2 <- lme4::glmer(data=portf_minnow2, minnow_occ_mean ~ minnow_rho_mean*frag_size + (1|river_id) + (1|unique_frag), family="binomial", weights=n_occasions))
+
+plot_model(m_pf2, type="pred", terms=c("frag_size[all]","minnow_rho_mean[0.1,0.9]"))+theme_classic()
+pdata_pf2 <- ggeffects::ggpredict(m_pf2, type="fe", terms=c("frag_size[all]","minnow_rho_mean[0.1,0.9]"))
+
+ggplot(data=pdata_pf2, aes(x=x, y=predicted, colour=group))+
+  geom_line()+
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.2, linetype="dashed")+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  geom_abline(intercept=c(0,1), slope=0, linetype="dashed")+
+  #scale_y_continuous(limits = c(0,1.1))+
+  ylab("Persistence (mean occurrence)")+
+  xlab("Fragment size proxy (sqrt)")+
+  theme_classic()
+
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/portfolio_effect_minnow.pdf", height=3, width=4)
+
+
+portf_roach2 <- alldata1_frag %>% filter(over_frag01 == 0) %>%
+  group_by(unique_frag, river_id) %>% filter(roach_n_gt0_two > 0) %>%
+  summarise(roach_rho_mean = mean(roach_rho, na.rm = T), 
+            roach_avg_mean = mean(roach_avg, na.rm = T),
+            n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 3) %>% left_join(occ_table, by="unique_frag")
+
+summary(m_pf3 <- lme4::glmer(data=portf_roach2, roach_occ_mean ~ roach_rho_mean*frag_size + (1|river_id)+ (1|unique_frag), family="binomial", weights=n_occasions))
+
+plot_model(m_pf3, type="pred", terms=c("frag_size","roach_rho_mean[0.1,0.9]"))+theme_classic()
+
+portf_perch2 <- alldata1_frag %>% filter(over_frag01 == 0) %>% 
+  group_by(unique_frag, river_id) %>% filter(perch_n_gt0_two > 0) %>%
+  summarise(perch_rho_mean = mean(perch_rho, na.rm = T), 
+            perch_avg_mean = mean(perch_avg, na.rm = T),
+            n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 3) %>% left_join(occ_table, by="unique_frag") 
+
+summary(m_pf4 <- lme4::glmer(data=portf_perch2, perch_occ_mean ~ perch_rho_mean*frag_size + (1|river_id)+ (1|unique_frag), family="binomial", weights=n_occasions))
+
+plot_model(m_pf4, type="pred", terms=c("frag_size","perch_rho_mean[0.1,0.9]"))+theme_classic()
+
+portf_pike2 <- alldata1_frag %>% filter(over_frag01 == 0) %>% 
+  group_by(unique_frag, river_id) %>% filter(pike_n_gt0_two > 0) %>%
+  summarise(pike_rho_mean = mean(pike_rho, na.rm = T), 
+            pike_avg_mean = mean(pike_avg, na.rm = T),
+            n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 3)  %>% left_join(occ_table, by="unique_frag")
+
+summary(m_pf5 <- lme4::glmer(data=portf_pike2, pike_occ_mean ~ pike_rho_mean*frag_size + (1|river_id)+ (1|unique_frag), family="binomial"))
+
+plot_model(m_pf5, type="pred", terms=c("frag_size[all]","pike_rho_mean[0.1,0.9]"))+theme_classic()
+
+pdata_pf5 <- ggeffects::ggpredict(m_pf5, type="fe", terms=c("frag_size[all]","pike_rho_mean[0.1,0.9]"))
+
+ggplot(data=pdata_pf5, aes(x=x, y=predicted, colour=group))+
+  geom_line()+
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.2, linetype="dashed")+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  geom_abline(intercept=c(0,1), slope=0, linetype="dashed")+
+  #scale_y_continuous(limits = c(0,1.1))+
+  ylab("Persistence (mean occurrence)")+
+  xlab("Fragment size proxy (sqrt)")+
+  theme_classic()
+
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/portfolio_effect_pike.pdf", height=3, width=4)
+
+
 outfiles <- Sys.glob("C:/jobb/disty/out_files/occ/*.csv")
 
-consolidate_portfolio <- read.csv(outfiles[1], sep=";", dec=".")
-for(i in 2:length(outfiles)){
-  consolidate_portfolio <- rbind(consolidate_portfolio, read.csv(outfiles[i], sep=";", dec="."))
-}
+
+
+##### 5. True large vs small fragments
+
+# Load the file with large vs small
+
+l_vs_s <- read.csv("C:/jobb/disty/out_files/f_tables/temp_list_large_small.csv", sep=";", dec=",")
+
+
+
+##### 6. Testing against Larsen et al.
+
+
 
 
 
