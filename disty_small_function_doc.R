@@ -239,6 +239,140 @@ plot(y1, y2)
 
 
 
+########################
+
+
+
+
+
+
+
+
+
+### Just analyses
+
+df <- alldata1_frag
+
+unique(df$river_id)
+
+pl29_1 <- df %>% filter(river_id == "29000") %>% 
+  filter(n_years > 5) %>%
+  #filter(flowconn01 == 1) %>% 
+  #filter(vtyp_same == T) %>% 
+  filter(trout_n_gt0_two > 0) %>%
+  filter(over_frag01 == 0) %>% ggplot(aes(x=rivdist, y=rho_trout)) + geom_point() +
+  geom_abline(intercept=0, slope=0, linetype=2)+
+  geom_smooth(method="lm", color="black") + theme_classic()
+
+
+pl29_2 <- df %>% filter(river_id == "29000") %>% 
+  filter(n_years > 5) %>%
+  #filter(flowconn01 == 1) %>% 
+  #filter(vtyp_same == T) %>% 
+  filter(minnow_n_gt0_two > 0) %>%
+  filter(over_frag01 == 0) %>% ggplot(aes(x=rivdist, y=rho_minnow)) + geom_point() +
+  geom_abline(intercept=0, slope=0, linetype=2)+
+  geom_smooth(method="lm", color="black") + theme_classic()
+
+
+pl29_3 <- df %>% filter(river_id == "29000") %>% 
+  filter(n_years > 5) %>%
+  #filter(flowconn01 == 1) %>% 
+  #filter(vtyp_same == T) %>% 
+  filter(roach_n_gt0_two > 0) %>%
+  filter(over_frag01 == 0) %>% ggplot(aes(x=rivdist, y=rho_roach)) + geom_point() +
+  geom_abline(intercept=0, slope=0, linetype=2) + theme_classic()
+
+
+pl29_4 <- df %>% filter(river_id == "29000") %>% 
+  filter(n_years > 5) %>%
+  #filter(flowconn01 == 1) %>% 
+  #filter(vtyp_same == T) %>% 
+  filter(perch_n_gt0_two > 0) %>%
+  filter(over_frag01 == 0) %>% ggplot(aes(x=rivdist, y=rho_perch)) + geom_point() +
+  geom_abline(intercept=0, slope=0, linetype=2)+
+  geom_smooth(method="lm", color="black") + theme_classic()
+
+
+pl29_5 <- df %>% filter(river_id == "29000") %>% 
+  filter(n_years > 5) %>%
+  #filter(flowconn01 == 1) %>% 
+  #filter(vtyp_same == T) %>% 
+  filter(pike_n_gt0_two > 0) %>%
+  filter(over_frag01 == 0) %>% ggplot(aes(x=rivdist, y=rho_pike)) + geom_point() +
+  geom_abline(intercept=0, slope=0, linetype=2)+
+  geom_smooth(method="lm", color="black") + theme_classic()
+
+
+grid.arrange(pl29_1, pl29_2, pl29_3, pl29_4, pl29_5, nrow=1)
+
+dev.copy2pdf(file="C:/jobb/disty/figs_new/rho_distance_32000.pdf", height=3, width=15)
+
+
+
+pl29_1 <- df %>% filter(river_id == "29000") %>% 
+  filter(n_years > 5) %>%
+  #filter(flowconn01 == 1) %>% 
+  #filter(vtyp_same == T) %>% 
+  filter(trout_n_gt0_two > 0) %>%
+  ggplot(aes(x=rivdist, y=rho_trout, color=over_frag)) + geom_point() +
+  geom_abline(intercept=0, slope=0, linetype=2)+
+  geom_smooth(method="lm") + theme_classic() + theme(legend.position="none")
+
+
+pl29_2 <- df %>% filter(river_id == "29000") %>% 
+  filter(n_years > 5) %>%
+  #filter(flowconn01 == 1) %>% 
+  #filter(vtyp_same == T) %>% 
+  filter(minnow_n_gt0_two > 0) %>%
+  ggplot(aes(x=rivdist, y=rho_minnow, color=over_frag)) + geom_point() +
+  geom_abline(intercept=0, slope=0, linetype=2)+
+  geom_smooth(method="lm") + theme_classic() + theme(legend.position="none")
+
+
+pl29_3 <- df %>% filter(river_id == "29000") %>% 
+  filter(n_years > 5) %>%
+  #filter(flowconn01 == 1) %>% 
+  #filter(vtyp_same == T) %>% 
+  filter(roach_n_gt0_two > 0) %>%
+  ggplot(aes(x=rivdist, y=rho_roach, color=over_frag)) + geom_point() +
+  geom_abline(intercept=0, slope=0, linetype=2) + theme_classic() + theme(legend.position="none")
+
+
+pl29_4 <- df %>% filter(river_id == "29000") %>% 
+  filter(n_years > 5) %>%
+  #filter(flowconn01 == 1) %>% 
+  #filter(vtyp_same == T) %>% 
+  filter(perch_n_gt0_two > 0) %>%
+  ggplot(aes(x=rivdist, y=rho_perch, color=over_frag)) + geom_point() +
+  geom_abline(intercept=0, slope=0, linetype=2)+
+  geom_smooth(method="lm") + theme_classic() + theme(legend.position="none")
+
+
+pl29_5 <- df %>% filter(river_id == "29000") %>% 
+  filter(n_years > 5) %>%
+  #filter(flowconn01 == 1) %>% 
+  #filter(vtyp_same == T) %>% 
+  filter(pike_n_gt0_two > 0) %>%
+  ggplot(aes(x=rivdist, y=rho_pike, color=over_frag)) + geom_point() +
+  geom_abline(intercept=0, slope=0, linetype=2)+
+  geom_smooth(method="lm") + theme_classic() + theme(legend.position="none")
+
+grid.arrange(pl29_1, pl29_2, pl29_3, pl29_4, pl29_5, nrow=1)
+
+dev.copy2pdf(file="C:/jobb/disty/figs_new/rho_distance_29000_interaction.pdf", height=3, width=15)
+
+
+
+df_trout <- df %>% filter(trout_n_gt0_two > 0)
+df_minnow <- df %>% filter(minnow_n_gt0_two > 0)
+df_roach <- df %>% filter(roach_n_gt0_two > 0)
+df_perch <- df %>% filter(perch_n_gt0_two > 0)
+df_pike <- df %>% filter(pike_n_gt0_two > 0)
+
+
+
+
 
 
 

@@ -857,15 +857,52 @@ outfiles <- Sys.glob("C:/jobb/disty/out_files/occ/*.csv")
 
 l_vs_s <- read.csv("C:/jobb/disty/out_files/f_tables/temp_list_large_small.csv", sep=";", dec=",")
 
+l_vs_s_data <- alldata1_frag %>% left_join(dplyr::select(l_vs_s, "XKOORLOK", "YKOORLOK", "Stor"), by=c("fromXKOORLOK"="XKOORLOK", "fromYKOORLOK"="YKOORLOK"))
 
+l_vs_s_data <- l_vs_s_data %>% filter(!is.na(Stor)) %>% filter(over_frag01 == 0) %>% filter(rivdist<5000)
+
+l_vs_s_data <- l_vs_s_data %>% group_by(river_id, fromXY, unique_frag, Stor) %>% summarise(trout_rho_mean = mean(trout_rho, na.rm = T),
+                                                                                trout_avg_lg_mean = mean(trout_avg, na.rm = T),
+                                                                                rivdist_mean = mean(rivdist, na.rm = T))
+
+l_vs_s_data %>% ggplot(aes(x=Stor, y=trout_rho_mean, group = Stor)) + geom_point() + theme_classic()
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/large_vs_small_rho.pdf", height=3, width=4)
+l_vs_s_data %>% ggplot(aes(x=Stor, y=trout_avg_lg_mean, group = Stor)) + geom_point() + theme_classic()
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/large_vs_small_density.pdf", height=3, width=4)
+
+summary(lm(data=l_vs_s_data, trout_rho_mean ~ Stor + rivdist_mean))
 
 ##### 6. Testing against Larsen et al.
 
+alldata2_frag <- alldata1_frag
 
+alldata2_frag$dedw <- alldata1_frag$pythdist/alldata1_frag$rivdist
+alldata2_frag$dedw[alldata2_frag$dedw > 1] <- 1
 
+alldata2_frag <- alldata2_frag %>% group_by(river_id) %>% mutate(median_ed=median(pythdist),
+                                                                 median_dedw=median(dedw))
 
+alldata2_frag$cat <- NA
+alldata2_frag$cat[which(alldata2_frag$pythdist <= alldata2_frag$median_ed & alldata2_frag$dedw > alldata2_frag$median_dedw)] <- "D1"
+alldata2_frag$cat[which(alldata2_frag$pythdist > alldata2_frag$median_ed & alldata2_frag$dedw > alldata2_frag$median_dedw)] <- "D2"
+alldata2_frag$cat[which(alldata2_frag$pythdist <= alldata2_frag$median_ed & alldata2_frag$dedw <= alldata2_frag$median_dedw)] <- "D3"
+alldata2_frag$cat[which(alldata2_frag$pythdist > alldata2_frag$median_ed & alldata2_frag$dedw <= alldata2_frag$median_dedw)] <- "D4"
 
+alldata3_frag <- alldata2_frag %>% filter(trout_n_gt0_two > 0) 
 
+summary(synch_all <- lme4::lmer(data=alldata3_frag, rho_trout~cat*over_frag01 + (1|river_id)))
+
+synch_all_pred <- ggeffects::ggpredict(synch_all, terms=c("cat", "over_frag01 [0,1]"), type="fe")
+
+ggplot(data=synch_all_pred, aes(x=x, y=predicted, colour=group))+
+  geom_point(position=position_dodge(width=0.2))+
+  geom_errorbar(aes(ymin=conf.low, ymax=conf.high, colour=group), position=position_dodge(width=0.2), width=0.2)+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  geom_abline(intercept=0, slope=0, linetype="dashed")+
+  theme_classic()
+
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/larsen_preds.pdf", height=3, width=4)
 
 
 
