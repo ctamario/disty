@@ -524,7 +524,7 @@ roach2 <- roach %>% filter(!is.na(roach_rho))
 perch2 <- perch %>% filter(!is.na(perch_rho))
 pike2 <- pike %>% filter(!is.na(pike_rho))
 
-membership_matrix_trout  <- weights_from_vector(trout2$random_site3)
+membership_matrix_trout <- weights_from_vector(trout2$random_site3)
 membership_matrix_minnow  <- weights_from_vector(minnow2$random_site3)
 membership_matrix_roach <- weights_from_vector(roach2$random_site3)
 membership_matrix_perch <- weights_from_vector(perch2$random_site3)
@@ -904,7 +904,201 @@ ggplot(data=synch_all_pred, aes(x=x, y=predicted, colour=group))+
 
 #dev.copy2pdf(file="C:/jobb/disty/figs_new/larsen_preds.pdf", height=3, width=4)
 
+##### 6. Truncating that bitch. 
 
+# I think it's the right way. Let's hope that we get the effect we want ... 
+
+write.table(alldata3_frag, file="C:/jobb/disty/alldata_2022_10_24.csv", row.names=F, sep=";", dec=",")
+
+df <- read.csv(file="C:/jobb/disty/alldata_2022_10_24.csv", sep=";", dec=",")
+
+# Find the max within-fragment distance for each river.
+max_dist_list <- df %>% filter(over_frag01 == 0) %>% group_by(river_id) %>% summarise(max_within_rivdist = max(rivdist, na.rm=T))
+
+# Join it into the main data frame.
+df <- df %>% left_join(max_dist_list, by = "river_id")
+
+# Filter away the site-pairs above and save it into df2
+
+df$longer_than_within_max <- 0 
+df$longer_than_within_max[which(df$rivdist > df$max_within_rivdist)] <- 1
+
+table(df$longer_than_within_max)
+
+df2 <- df %>% filter(longer_than_within_max == 0)
+
+# Now I need to feed this df2 into three different data frames, one for each species
+
+df2_trout <- df2 %>% filter(trout_n_gt0_two > 0)
+df2_minnow <- df2 %>% filter(minnow_n_gt0_two > 0)
+df2_pike <- df2 %>% filter(pike_n_gt0_two > 0)
+
+# I also need to create multimember matrices for each of these data frames.
+## BTW: How to handle flow-connectedness? I'm here making separate datasets
+# both with and without flow-connectedness to try it both ways.
+
+# fc = flow-connected; wf = within fragment.
+trout2_fc_wf <- df2_trout %>% filter(!is.na(trout_rho)) %>% filter(flowconn01 == 1) %>% filter(over_frag01 == 0)
+minnow2_fc_wf <- df2_minnow %>% filter(!is.na(minnow_rho)) %>% filter(flowconn01 == 1) %>% filter(over_frag01 == 0)
+pike2_fc_wf <- df2_pike %>% filter(!is.na(pike_rho)) %>% filter(flowconn01 == 1) %>% filter(over_frag01 == 0)
+
+# fc = flow-connected.
+trout2_fc <- df2_trout %>% filter(!is.na(trout_rho)) %>% filter(flowconn01 == 1)
+minnow2_fc <- df2_minnow %>% filter(!is.na(minnow_rho)) %>% filter(flowconn01 == 1)
+pike2_fc <- df2_pike %>% filter(!is.na(pike_rho)) %>% filter(flowconn01 == 1)
+
+# "all data"
+trout2 <- df2_trout %>% filter(!is.na(trout_rho))
+minnow2 <- df2_minnow %>% filter(!is.na(minnow_rho))
+pike2 <- df2_pike %>% filter(!is.na(pike_rho))
+
+# create multimembership matrices
+membership_matrix_trout_fc_wf  <- weights_from_vector(trout2_fc_wf$random_site3)
+membership_matrix_minnow_fc_wf  <- weights_from_vector(minnow2_fc_wf$random_site3)
+membership_matrix_pike_fc_wf <- weights_from_vector(pike2_fc_wf$random_site3)
+
+membership_matrix_trout_fc  <- weights_from_vector(trout2_fc$random_site3)
+membership_matrix_minnow_fc  <- weights_from_vector(minnow2_fc$random_site3)
+membership_matrix_pike_fc <- weights_from_vector(pike2_fc$random_site3)
+
+membership_matrix_trout <- weights_from_vector(trout2$random_site3)
+membership_matrix_minnow  <- weights_from_vector(minnow2$random_site3)
+membership_matrix_pike <- weights_from_vector(pike2$random_site3)
+
+
+# Perhaps this is where I form a model?
+
+# Simplest possible
+summary(m_main0.1 <- lmerMultiMember::lmer(data=trout2_fc_wf, rho_trout~sqrt_rivdist + (1|river_id) + (1|site), memberships = list(site=membership_matrix_trout_fc_wf)))
+summary(m_main0.2 <- lmerMultiMember::lmer(data=minnow2_fc_wf, rho_minnow~sqrt_rivdist + (1|river_id) + (1|site), memberships = list(site=membership_matrix_minnow_fc_wf)))
+summary(m_main0.2 <- lmerMultiMember::lmer(data=pike2_fc_wf, rho_pike~sqrt_rivdist + (1|river_id) + (1|site), memberships = list(site=membership_matrix_pike_fc_wf))) #for some reason this doesn't go through
+summary(m_main0.3 <- lme4::lmer(data=pike2_fc_wf, rho_pike~sqrt_rivdist + (1|river_id) + (1|site1))) # so resort to this.
+
+plot_model(m_main0.1, type = "pred")
+plot_model(m_main0.2, type = "pred")
+plot_model(m_main0.3, type = "pred")
+
+m_main0.1_pred <- ggeffects::ggpredict(m_main0.1, terms=c("sqrt_rivdist"), type="fe")
+m_main0.2_pred <- ggeffects::ggpredict(m_main0.2, terms=c("sqrt_rivdist"), type="fe")
+m_main0.3_pred <- ggeffects::ggpredict(m_main0.3, terms=c("sqrt_rivdist"), type="fe")
+
+pl_data_0.123 <- rbind(cbind(m_main0.1_pred, species="trout"), 
+      cbind(m_main0.2_pred, species="minnow"),
+      cbind(m_main0.3_pred, species="pike"))
+
+pl_data_0.123 %>% ggplot(aes(x=x^2, y=predicted, color=species)) + 
+  geom_line() + geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=species), linetype = 2, alpha=0.1) +
+  xlab("site-pair watercourse distance (m)") + ylab("site-pair synchrony (rho)") + geom_abline(slope=0, intercept=0, linetype=2) + theme_classic()
+
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/figure0123.pdf", height=3, width=5)
+
+t.test(pike2_fc_wf$pike_rho, mu=0)
+
+# Full model
+summary(m_main1 <- lmerMultiMember::lmer(data=trout2_fc, rho_trout~sqrt_rivdist*over_frag01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_trout_fc)))
+summary(m_main2 <- lmerMultiMember::lmer(data=minnow2_fc, rho_minnow~sqrt_rivdist*over_frag01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_minnow_fc)))
+summary(m_main3 <- lmerMultiMember::lmer(data=pike2_fc, rho_pike~sqrt_rivdist*over_frag01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_pike_fc)))
+
+summary(m_main4 <- lmerMultiMember::lmer(data=trout2, rho_trout~sqrt_rivdist*over_frag01*flowconn01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_trout)))
+summary(m_main5 <- lmerMultiMember::lmer(data=minnow2, rho_minnow~sqrt_rivdist*over_frag01+flowconn01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_minnow)))
+summary(m_main6 <- lmerMultiMember::lmer(data=pike2, rho_pike~sqrt_rivdist*over_frag01+flowconn01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_pike)))
+
+plot_model(m_main1, type = "pred", terms=c("sqrt_rivdist", "over_frag01 [0,1]"))+theme_classic()
+plot_model(m_main2, type = "pred", terms=c("sqrt_rivdist", "over_frag01 [0,1]"))+theme_classic()
+plot_model(m_main3, type = "pred", terms=c("sqrt_rivdist", "over_frag01 [0,1]"))+theme_classic()
+
+plot_model(m_main4, type = "int")
+plot_model(m_main5, type = "int")
+plot_model(m_main6, type = "int")
+
+### Make some plots
+# Plotting data
+m_main1_pred <- ggeffects::ggpredict(m_main1, terms=c("sqrt_rivdist[all]", "over_frag01 [0,1]"), type="fe")
+m_main2_pred <- ggeffects::ggpredict(m_main2, terms=c("sqrt_rivdist", "over_frag01 [0,1]"), type="fe")
+m_main3_pred <- ggeffects::ggpredict(m_main3, terms=c("sqrt_rivdist", "over_frag01 [0,1]"), type="fe")
+
+# The actual plots 
+
+mp1 <- ggplot(data=m_main1_pred, aes(x=x^2, y=predicted, colour=group))+
+  geom_line()+
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), linetype = 2, alpha=0.2)+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  #facet_wrap(facets = vars(facet))+
+  geom_abline(intercept=0, slope=0, linetype="dashed")+
+  #geom_rug(data=trout2_fc %>% filter(over_frag01==1), aes(x=sqrt_rivdist), color=hue_pal()(2)[2], sides="t", inherit.aes = F)+
+  #geom_rug(data=trout2_fc %>% filter(over_frag01==0), aes(x=sqrt_rivdist), color=hue_pal()(2)[1], sides="b", inherit.aes = F)+
+  ylim(c(-0.30, 0.50))+
+  xlim(c(0,max(trout2_fc$rivdist)+1))+
+  xlab("site-pair watercourse distance (m)") + ylab("site-pair synchrony (rho)") +
+  theme_classic() + theme(legend.position = "none")
+
+
+mp2 <- ggplot(data=m_main2_pred, aes(x=x^2, y=predicted, colour=group))+
+  geom_line()+
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), linetype = 2, alpha=0.2)+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  #facet_wrap(facets = vars(facet))+
+  geom_abline(intercept=0, slope=0, linetype="dashed")+
+  #geom_rug(data=minnow2_fc %>% filter(over_frag01==1), aes(x=sqrt_rivdist), color=hue_pal()(2)[2], sides="t", inherit.aes = F)+
+  #geom_rug(data=minnow2_fc %>% filter(over_frag01==0), aes(x=sqrt_rivdist), color=hue_pal()(2)[1], sides="b", inherit.aes = F)+
+  ylim(c(-0.30, 0.50))+
+  xlim(c(0,max(minnow2_fc$rivdist)+1))+
+  xlab("site-pair watercourse distance (m)") + ylab("site-pair synchrony (rho)") +
+  theme_classic() + theme(legend.position = "none")
+
+mp3 <- ggplot(data=m_main3_pred, aes(x=x^2, y=predicted, colour=group))+
+  geom_line()+
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), linetype = 2, alpha=0.2)+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  #facet_wrap(facets = vars(facet))+
+  geom_abline(intercept=0, slope=0, linetype="dashed")+
+  #geom_rug(data=pike2_fc %>% filter(over_frag01==1), aes(x=sqrt_rivdist), color=hue_pal()(2)[2], sides="t", inherit.aes = F)+
+  #geom_rug(data=pike2_fc %>% filter(over_frag01==0), aes(x=sqrt_rivdist), color=hue_pal()(2)[1], sides="b", inherit.aes = F)+
+  ylim(c(-0.30, 0.50))+
+  xlim(c(0,max(pike2_fc$rivdist)+1))+
+  xlab("site-pair watercourse distance (m)") + ylab("site-pair synchrony (rho)") +
+  theme_classic() + theme(legend.position = "none")
+
+grid.arrange(mp1, mp2, mp3, nrow=1)
+
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/mp123.pdf", height=3, width=10)
+
+hp1 <- trout2_fc %>% ggplot(aes(x=rivdist, group=over_frag, fill=over_frag))+xlim(c(0,max(trout2_fc$rivdist)+1))+geom_density(alpha=0.1)+theme_classic()+theme(legend.position = "none")
+hp2 <- minnow2_fc %>% ggplot(aes(x=rivdist, group=over_frag, fill=over_frag))+xlim(c(0,max(minnow2_fc$rivdist)+1))+geom_density(alpha=0.1)+theme_classic()+theme(legend.position = "none")
+hp3 <- pike2_fc %>% ggplot(aes(x=rivdist, group=over_frag, fill=over_frag))+xlim(c(0,max(pike2_fc$rivdist)+1))+geom_density(alpha=0.1)+theme_classic()+theme(legend.position = "none")
+
+grid.arrange(hp1, hp2, hp3, nrow=1)
+
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/hp123.pdf", height=3, width=10)
+
+hist(trout2_fc$rivdist)
+
+
+
+######### Portfolio effect again
+
+
+occ_table <- df %>% group_by(fromXY, unique_frag) %>% summarise(trout_occ_mean = mean(trout_occ),
+                                                                           minnow_occ_mean = mean(minnow_occ),
+                                                                           roach_occ_mean = mean(roach_occ),
+                                                                           perch_occ_mean = mean(perch_occ),
+                                                                           pike_occ_mean = mean(pike_occ),
+                                                                           n_occasions=mean(n_occasions))
+
+
+portf_trout2 <- df %>% filter(over_frag01 == 0) %>% 
+  group_by(unique_frag, river_id) %>% filter(trout_n_gt0_two > 0) %>%
+  summarise(trout_rho_mean = mean(trout_rho, na.rm = T), 
+            trout_avg_mean = mean(trout_avg, na.rm = T),
+            trout_occ_mean1 = mean(trout_occ, na.rm = T),
+            n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 3)
+
+portf_trout2 <- portf_trout2 %>% left_join(occ_table, by="unique_frag")
+
+summary(m_pf1 <- lme4::glmer(data=portf_trout2, trout_occ_mean ~ trout_rho_mean*frag_size + (1|river_id) + (1|unique_frag), family="binomial", weights=n_occasions))
 
 
 
