@@ -8,7 +8,7 @@ setwd("C:/jobb/disty")
 
 
 library(pacman)
-p_load(sp, rgdal, riverdist, tidyr, dplyr, ggplot2, regclass, sjPlot, lme4, gridExtra, nlme, ggExtra, lmerMultiMember, MASS, scales)
+p_load(sp, rgdal, riverdist, tidyr, dplyr, ggplot2, regclass, sjPlot, lme4, gridExtra, nlme, ggExtra, lmerMultiMember, MASS, scales, glmmTMB)
 
 
 ### Function
@@ -908,9 +908,9 @@ ggplot(data=synch_all_pred, aes(x=x, y=predicted, colour=group))+
 
 # I think it's the right way. Let's hope that we get the effect we want ... 
 
-write.table(alldata3_frag, file="C:/jobb/disty/alldata_2022_10_24.csv", row.names=F, sep=";", dec=",")
+write.table(alldata2_frag, file="C:/jobb/disty/alldata_2022_10_25.csv", row.names=F, sep=";", dec=",")
 
-df <- read.csv(file="C:/jobb/disty/alldata_2022_10_24.csv", sep=";", dec=",")
+df <- read.csv(file="C:/jobb/disty/alldata_2022_10_25.csv", sep=";", dec=",")
 
 # Find the max within-fragment distance for each river.
 max_dist_list <- df %>% filter(over_frag01 == 0) %>% group_by(river_id) %>% summarise(max_within_rivdist = max(rivdist, na.rm=T))
@@ -966,13 +966,13 @@ membership_matrix_minnow  <- weights_from_vector(minnow2$random_site3)
 membership_matrix_pike <- weights_from_vector(pike2$random_site3)
 
 
-# Perhaps this is where I form a model?
+######### Perhaps this is where I form a model?
 
-# Simplest possible
+##### Model within-barriers (3.1)
 summary(m_main0.1 <- lmerMultiMember::lmer(data=trout2_fc_wf, rho_trout~sqrt_rivdist + (1|river_id) + (1|site), memberships = list(site=membership_matrix_trout_fc_wf)))
 summary(m_main0.2 <- lmerMultiMember::lmer(data=minnow2_fc_wf, rho_minnow~sqrt_rivdist + (1|river_id) + (1|site), memberships = list(site=membership_matrix_minnow_fc_wf)))
-summary(m_main0.2 <- lmerMultiMember::lmer(data=pike2_fc_wf, rho_pike~sqrt_rivdist + (1|river_id) + (1|site), memberships = list(site=membership_matrix_pike_fc_wf))) #for some reason this doesn't go through
-summary(m_main0.3 <- lme4::lmer(data=pike2_fc_wf, rho_pike~sqrt_rivdist + (1|river_id) + (1|site1))) # so resort to this.
+summary(m_main0.3 <- lmerMultiMember::lmer(data=pike2_fc_wf, rho_pike~sqrt_rivdist + (1|river_id) + (1|site), memberships = list(site=membership_matrix_pike_fc_wf))) #for some reason this doesn't go through
+#summary(m_main0.3 <- lme4::lmer(data=pike2_fc_wf, rho_pike~sqrt_rivdist + (1|river_id) + (1|site1))) # so resort to this.
 
 plot_model(m_main0.1, type = "pred")
 plot_model(m_main0.2, type = "pred")
@@ -994,30 +994,22 @@ pl_data_0.123 %>% ggplot(aes(x=x^2, y=predicted, color=species)) +
 
 t.test(pike2_fc_wf$pike_rho, mu=0)
 
-# Full model
+##### Model over barriers (3.2)
 summary(m_main1 <- lmerMultiMember::lmer(data=trout2_fc, rho_trout~sqrt_rivdist*over_frag01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_trout_fc)))
 summary(m_main2 <- lmerMultiMember::lmer(data=minnow2_fc, rho_minnow~sqrt_rivdist*over_frag01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_minnow_fc)))
 summary(m_main3 <- lmerMultiMember::lmer(data=pike2_fc, rho_pike~sqrt_rivdist*over_frag01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_pike_fc)))
-
-summary(m_main4 <- lmerMultiMember::lmer(data=trout2, rho_trout~sqrt_rivdist*over_frag01*flowconn01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_trout)))
-summary(m_main5 <- lmerMultiMember::lmer(data=minnow2, rho_minnow~sqrt_rivdist*over_frag01+flowconn01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_minnow)))
-summary(m_main6 <- lmerMultiMember::lmer(data=pike2, rho_pike~sqrt_rivdist*over_frag01+flowconn01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_pike)))
+summary(m_main3 <- lmerMultiMember::lmer(data=pike2_fc, rho_pike~sqrt_rivdist+over_frag01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_pike_fc)))
 
 plot_model(m_main1, type = "pred", terms=c("sqrt_rivdist", "over_frag01 [0,1]"))+theme_classic()
 plot_model(m_main2, type = "pred", terms=c("sqrt_rivdist", "over_frag01 [0,1]"))+theme_classic()
 plot_model(m_main3, type = "pred", terms=c("sqrt_rivdist", "over_frag01 [0,1]"))+theme_classic()
 
-plot_model(m_main4, type = "int")
-plot_model(m_main5, type = "int")
-plot_model(m_main6, type = "int")
-
-### Make some plots
-# Plotting data
+# Creating the plotting data
 m_main1_pred <- ggeffects::ggpredict(m_main1, terms=c("sqrt_rivdist[all]", "over_frag01 [0,1]"), type="fe")
-m_main2_pred <- ggeffects::ggpredict(m_main2, terms=c("sqrt_rivdist", "over_frag01 [0,1]"), type="fe")
-m_main3_pred <- ggeffects::ggpredict(m_main3, terms=c("sqrt_rivdist", "over_frag01 [0,1]"), type="fe")
+m_main2_pred <- ggeffects::ggpredict(m_main2, terms=c("sqrt_rivdist[all]", "over_frag01 [0,1]"), type="fe")
+m_main3_pred <- ggeffects::ggpredict(m_main3, terms=c("sqrt_rivdist[all]", "over_frag01 [0,1]"), type="fe")
 
-# The actual plots 
+# Making some plots
 
 mp1 <- ggplot(data=m_main1_pred, aes(x=x^2, y=predicted, colour=group))+
   geom_line()+
@@ -1064,21 +1056,91 @@ mp3 <- ggplot(data=m_main3_pred, aes(x=x^2, y=predicted, colour=group))+
 
 grid.arrange(mp1, mp2, mp3, nrow=1)
 
-#dev.copy2pdf(file="C:/jobb/disty/figs_new/mp123.pdf", height=3, width=10)
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/mp123_2.pdf", height=3, width=10)
 
-hp1 <- trout2_fc %>% ggplot(aes(x=rivdist, group=over_frag, fill=over_frag))+xlim(c(0,max(trout2_fc$rivdist)+1))+geom_density(alpha=0.1)+theme_classic()+theme(legend.position = "none")
-hp2 <- minnow2_fc %>% ggplot(aes(x=rivdist, group=over_frag, fill=over_frag))+xlim(c(0,max(minnow2_fc$rivdist)+1))+geom_density(alpha=0.1)+theme_classic()+theme(legend.position = "none")
-hp3 <- pike2_fc %>% ggplot(aes(x=rivdist, group=over_frag, fill=over_frag))+xlim(c(0,max(pike2_fc$rivdist)+1))+geom_density(alpha=0.1)+theme_classic()+theme(legend.position = "none")
+hp1 <- trout2_fc %>% ggplot(aes(x=rivdist, group=over_frag, color=over_frag, fill=over_frag))+xlim(c(0,max(trout2_fc$rivdist)+1))+geom_density(alpha=0.1)+theme_classic()+theme(legend.position = "none")
+hp2 <- minnow2_fc %>% ggplot(aes(x=rivdist, group=over_frag, color=over_frag, fill=over_frag))+xlim(c(0,max(minnow2_fc$rivdist)+1))+geom_density(alpha=0.1)+theme_classic()+theme(legend.position = "none")
+hp3 <- pike2_fc %>% ggplot(aes(x=rivdist, group=over_frag, color=over_frag, fill=over_frag))+xlim(c(0,max(pike2_fc$rivdist)+1))+geom_density(alpha=0.1)+theme_classic()+theme(legend.position = "none")
 
 grid.arrange(hp1, hp2, hp3, nrow=1)
 
-#dev.copy2pdf(file="C:/jobb/disty/figs_new/hp123.pdf", height=3, width=10)
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/hp123_2.pdf", height=3, width=10)
 
 hist(trout2_fc$rivdist)
 
+##### Model over barriers and between tributaries (3.3)
+
+#Making the models
+summary(m_main4 <- lmerMultiMember::lmer(data=trout2, rho_trout~sqrt_rivdist*over_frag01*flowconn01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_trout)))
+summary(m_main5 <- lmerMultiMember::lmer(data=minnow2, rho_minnow~sqrt_rivdist*over_frag01*flowconn01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_minnow)))
+summary(m_main6 <- lmerMultiMember::lmer(data=pike2, rho_pike~sqrt_rivdist*over_frag01*flowconn01 + (1|river_id) + (1|site), memberships = list(site=membership_matrix_pike)))
+
+# Primitive plots
+plot_model(m_main4, type = "int")
+plot_model(m_main5, type = "int")
+plot_model(m_main6, type = "int")
+
+# Creating the plotting data
+m_main4_pred <- ggeffects::ggpredict(m_main4, terms=c("sqrt_rivdist[all]", "over_frag01 [0,1]", "flowconn01"), type="fe")
+m_main5_pred <- ggeffects::ggpredict(m_main5, terms=c("sqrt_rivdist[all]", "over_frag01 [0,1]", "flowconn01"), type="fe")
+m_main6_pred <- ggeffects::ggpredict(m_main6, terms=c("sqrt_rivdist[all]", "over_frag01 [0,1]", "flowconn01"), type="fe")
+
+# Plotting the predictions
+
+mp4 <- ggplot(data=m_main4_pred, aes(x=x^2, y=predicted, colour=group))+
+  geom_line()+
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), linetype = 2, alpha=0.2)+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  #facet_wrap(facets = vars(facet))+
+  geom_abline(intercept=0, slope=0, linetype="dashed")+
+  #geom_rug(data=trout2_fc %>% filter(over_frag01==1), aes(x=sqrt_rivdist), color=hue_pal()(2)[2], sides="t", inherit.aes = F)+
+  #geom_rug(data=trout2_fc %>% filter(over_frag01==0), aes(x=sqrt_rivdist), color=hue_pal()(2)[1], sides="b", inherit.aes = F)+
+  ylim(c(-0.35, 0.65))+
+  xlim(c(0,max(trout2$rivdist)+10))+
+  xlab("site-pair watercourse distance (m)") + ylab("site-pair synchrony (rho)") +
+  facet_wrap(~ facet) +
+  theme_classic() + theme(legend.position = "none")
+
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/mp4_trout.pdf", height=3, width=5.5)
+
+mp5 <- ggplot(data=m_main5_pred, aes(x=x^2, y=predicted, colour=group))+
+  geom_line()+
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), linetype = 2, alpha=0.2)+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  #facet_wrap(facets = vars(facet))+
+  geom_abline(intercept=0, slope=0, linetype="dashed")+
+  #geom_rug(data=trout2_fc %>% filter(over_frag01==1), aes(x=sqrt_rivdist), color=hue_pal()(2)[2], sides="t", inherit.aes = F)+
+  #geom_rug(data=trout2_fc %>% filter(over_frag01==0), aes(x=sqrt_rivdist), color=hue_pal()(2)[1], sides="b", inherit.aes = F)+
+  ylim(c(-0.35, 0.65))+
+  xlim(c(0,max(trout2$rivdist)+1))+
+  xlab("site-pair watercourse distance (m)") + ylab("site-pair synchrony (rho)") +
+  facet_wrap(~ facet) +
+  theme_classic() + theme(legend.position = "none")
+
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/mp5_minnow.pdf", height=3, width=5.5)
+
+mp6 <- ggplot(data=m_main6_pred, aes(x=x^2, y=predicted, colour=group))+
+  geom_line()+
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), linetype = 2, alpha=0.2)+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  #facet_wrap(facets = vars(facet))+
+  geom_abline(intercept=0, slope=0, linetype="dashed")+
+  #geom_rug(data=trout2_fc %>% filter(over_frag01==1), aes(x=sqrt_rivdist), color=hue_pal()(2)[2], sides="t", inherit.aes = F)+
+  #geom_rug(data=trout2_fc %>% filter(over_frag01==0), aes(x=sqrt_rivdist), color=hue_pal()(2)[1], sides="b", inherit.aes = F)+
+  ylim(c(-0.35, 0.65))+
+  xlim(c(0,max(trout2$rivdist)+1))+
+  xlab("site-pair watercourse distance (m)") + ylab("site-pair synchrony (rho)") +
+  facet_wrap(~ facet) +
+  theme_classic() + theme(legend.position = "none")
+
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/mp6_pike.pdf", height=3, width=5.5)
 
 
-######### Portfolio effect again
+
+##### Portfolio effect again (3.4)
 
 
 occ_table <- df %>% group_by(fromXY, unique_frag) %>% summarise(trout_occ_mean = mean(trout_occ),
@@ -1094,11 +1156,241 @@ portf_trout2 <- df %>% filter(over_frag01 == 0) %>%
   summarise(trout_rho_mean = mean(trout_rho, na.rm = T), 
             trout_avg_mean = mean(trout_avg, na.rm = T),
             trout_occ_mean1 = mean(trout_occ, na.rm = T),
-            n = n(), frag_size = mean(rivdistlg)) %>% filter(n > 3)
+            n = n(), frag_size = mean(sqrt_rivdist)) %>% filter(n > 3)
+
+hist(portf_trout2$frag_size)
+hist(log(portf_trout2$trout_avg_mean+1))
 
 portf_trout2 <- portf_trout2 %>% left_join(occ_table, by="unique_frag")
 
 summary(m_pf1 <- lme4::glmer(data=portf_trout2, trout_occ_mean ~ trout_rho_mean*frag_size + (1|river_id) + (1|unique_frag), family="binomial", weights=n_occasions))
 
+plot_model(m_pf1, type="pred", terms=c("frag_size[all]","trout_rho_mean[0.1,1]"))+theme_classic()
+pdata_pf1 <- ggeffects::ggpredict(m_pf1, type="fe", terms=c("frag_size[all]","trout_rho_mean[0.1,1]"))
 
+plot_model(m_pf1, type="pred", terms=c(c("frag_size[all]","trout_rho_mean[0.2,1]","trout_avg_mean[10,70]")))
+
+pl_pf1 <- ggplot(data=pdata_pf1, aes(x=x, y=predicted, colour=group))+
+  geom_line()+
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.2, linetype="dashed")+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  geom_abline(intercept=c(0,1), slope=0, linetype="dashed")+
+  #scale_y_continuous(limits = c(0,1.1))+
+  ylab("Persistence (mean occurrence)")+
+  xlab("Fragment size proxy (sqrt)")+
+  ##xlim(c(0,max(portf_trout2$frag_size^2)+1))+
+  ylim(c(0,1))+
+  theme_classic() + theme(legend.position = "none")
+pl_pf1
+#plot, portfolio, histogram, 1
+pl_pf_h_1 <- portf_trout2 %>% ggplot(aes(x=frag_size)) + geom_density(fill="black", alpha=0.1) + xlim(c(0,max(portf_trout2$frag_size)+1)) + theme_classic()
+
+
+
+
+portf_minnow2 <- df %>% filter(over_frag01 == 0) %>% 
+  group_by(unique_frag, river_id) %>% filter(minnow_n_gt0_two > 0) %>%
+  summarise(minnow_rho_mean = mean(minnow_rho, na.rm = T), 
+            minnow_avg_mean = mean(minnow_avg, na.rm = T),
+            minnow_occ_mean1 = mean(minnow_occ, na.rm = T),
+            n = n(), frag_size = mean(sqrt_rivdist)) %>% filter(n > 3)
+
+portf_minnow2 <- portf_minnow2 %>% left_join(occ_table, by="unique_frag")
+portf_minnow2$frag_size_scaled <- scale(portf_minnow2$frag_size) 
+
+plot(data=portf_minnow2, frag_size~frag_size_scaled) 
+
+summary(m_pf2 <- lme4::glmer(data=portf_minnow2, minnow_occ_mean ~ minnow_rho_mean*scale(frag_size) + (1|river_id) + (1|unique_frag), family="binomial", weights=n_occasions))
+summary(m_pf2 <- lme4::glmer(data=portf_minnow2, minnow_occ_mean ~ minnow_rho_mean+scale(frag_size) + (1|river_id) + (1|unique_frag), family="binomial", weights=n_occasions))
+
+plot_model(m_pf2, type="pred", terms=c("frag_size[all]","minnow_rho_mean[0.1,1]"))+theme_classic()
+pdata_pf2 <- ggeffects::ggpredict(m_pf2, type="fe", terms=c("frag_size[all]","minnow_rho_mean[0.1,1]"))
+
+
+pl_pf2 <- ggplot(data=pdata_pf2, aes(x=x, y=predicted, colour=group))+
+  geom_line()+
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.2, linetype="dashed")+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  geom_abline(intercept=c(0,1), slope=0, linetype="dashed")+
+  #scale_y_continuous(limits = c(0,1.1))+
+  ylab("Persistence (mean occurrence)")+
+  xlab("Fragment size proxy (m)")+
+  #xlim(c(0,max(portf_minnow2$frag_size^2)+1))+
+  ylim(c(0,1))+
+  theme_classic()+ theme(legend.position = "none")
+
+pl_pf_h_2 <- portf_minnow2 %>% ggplot(aes(x=frag_size)) + xlim(c(0,max(portf_minnow2$frag_size)+1))+geom_density(fill="black", alpha=0.1) + theme_classic()
+
+
+
+portf_pike2 <- df %>% filter(over_frag01 == 0) %>% 
+  group_by(unique_frag, river_id) %>% filter(pike_n_gt0_two > 0) %>%
+  summarise(pike_rho_mean = mean(pike_rho, na.rm = T), 
+            pike_avg_mean = mean(pike_avg, na.rm = T),
+            pike_occ_mean1 = mean(pike_occ, na.rm = T),
+            n = n(), frag_size = mean(sqrt_rivdist)) %>% filter(n > 3)
+
+portf_pike2 <- portf_pike2 %>% left_join(occ_table, by="unique_frag")
+
+summary(m_pf3 <- lme4::glmer(data=portf_pike2, pike_occ_mean ~ pike_rho_mean*frag_size + (1|river_id) + (1|unique_frag), family="binomial", weights=n_occasions))
+summary(m_pf3 <- lme4::glmer(data=portf_pike2, pike_occ_mean ~ pike_rho_mean+frag_size + (1|river_id) + (1|unique_frag), family="binomial", weights=n_occasions))
+
+plot_model(m_pf3, type="pred", terms=c("frag_size[all]","pike_rho_mean[0.1,1]"))+theme_classic()
+pdata_pf3 <- ggeffects::ggpredict(m_pf3, type="fe", terms=c("frag_size[all]","pike_rho_mean[0.1,1]"))
+
+
+pl_pf3 <- ggplot(data=pdata_pf3, aes(x=x, y=predicted, colour=group))+
+  geom_line()+
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.2, linetype="dashed")+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  geom_abline(intercept=c(0,1), slope=0, linetype="dashed")+
+  #scale_y_continuous(limits = c(0,1.1))+
+  ylab("Persistence (mean occurrence)")+
+  xlab("Fragment size proxy (m)")+
+  xlim(c(0,max(portf_pike2$frag_size)+10))+
+  ylim(c(0,1))+
+  theme_classic() + theme(legend.position = "none")
+
+pl_pf_h_3 <- portf_pike2 %>% ggplot(aes(x=frag_size)) + xlim(c(0,max(portf_pike2$frag_size)+10))+geom_density(fill="black", alpha=0.1) + theme_classic()
+
+
+grid.arrange(pl_pf1, pl_pf2, pl_pf3, nrow=1)
+
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/pl_pf123_no_int_sqrt.pdf", height=3, width=10)
+
+grid.arrange(pl_pf_h_1, pl_pf_h_2, pl_pf_h_3, nrow=1)
+
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/pl_pf_h_123_sqrt.pdf", height=3, width=10)
+
+##### Average density
+
+frag_rho1 <- portf_trout2 %>% ggplot(aes(x=frag_size^2, y=trout_rho_mean)) +
+  ylim(c(-0.25,1)) + xlab("Fragment size proxy (m)") + ylab("Mean synchrony in fragment") + geom_point() +
+  geom_smooth(method="lm", color="black") + geom_abline(intercept=0, slope=0, linetype=2)+ theme_classic()
+
+summary(lm(data=portf_trout2, trout_rho_mean ~ frag_size))
+
+frag_rho2 <- portf_minnow2 %>% ggplot(aes(x=frag_size^2, y=minnow_rho_mean)) +
+  ylim(c(-0.25,1)) + xlab("Fragment size proxy (m)") + geom_point() +
+  geom_smooth(method="lm", color="black")+ geom_abline(intercept=0, slope=0, linetype=2) + theme_classic()
+
+summary(lm(data=portf_minnow2, minnow_rho_mean ~ frag_size))
+
+frag_rho3 <- portf_pike2 %>% ggplot(aes(x=frag_size^2, y=pike_rho_mean)) +
+  ylim(c(-0.25,1)) + geom_point() + xlab("Fragment size proxy (m)") +
+  geom_smooth(method="lm", color="black") + geom_abline(intercept=0, slope=0, linetype=2) + theme_classic()
+
+summary(lm(data=portf_pike2, pike_rho_mean ~ frag_size))
+
+grid.arrange(frag_rho1, frag_rho2, frag_rho3, nrow=1)
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/mean_rho_per_frag.pdf", height=3, width=10)
+
+
+##### Comparing to Larsen et al 2021 again
+
+
+
+summary(synch_t <- lme4::lmer(data=df2_trout, rho_trout~cat*over_frag01 + (1|river_id)))
+summary(synch_t_without <- lme4::lmer(data=df2_trout, rho_trout~cat + (1|river_id)))
+anova(synch_t, synch_t_without)
+
+summary(synch_m <- lme4::lmer(data=df2_minnow, rho_minnow~cat*over_frag01 + (1|river_id)))
+summary(synch_m_without <- lme4::lmer(data=df2_minnow, rho_minnow~cat + (1|river_id)))
+anova(synch_m, synch_m_without)
+
+summary(synch_p <- lme4::lmer(data=df2_pike, rho_pike~cat*over_frag01 + (1|river_id)))
+summary(synch_p_without <- lme4::lmer(data=df2_pike, rho_pike~cat + (1|river_id)))
+anova(synch_p, synch_p_without)
+
+synch_all_pred_t <- ggeffects::ggpredict(synch_t, terms=c("cat", "over_frag01 [0,1]"), type="fe")
+synch_all_pred_m <- ggeffects::ggpredict(synch_m, terms=c("cat", "over_frag01 [0,1]"), type="fe")
+synch_all_pred_p <- ggeffects::ggpredict(synch_p, terms=c("cat", "over_frag01 [0,1]"), type="fe")
+
+synch_plot1 <- ggplot(data=synch_all_pred_t, aes(x=x, y=predicted, colour=group))+
+  geom_point(position=position_dodge(width=0.2))+
+  geom_errorbar(aes(ymin=conf.low, ymax=conf.high, colour=group), position=position_dodge(width=0.2), width=0.2)+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  geom_abline(intercept=0, slope=0, linetype="dashed")+
+  theme_classic()+theme(legend.position = "none")
+
+synch_plot2 <- ggplot(data=synch_all_pred_m, aes(x=x, y=predicted, colour=group))+
+  geom_point(position=position_dodge(width=0.2))+
+  geom_errorbar(aes(ymin=conf.low, ymax=conf.high, colour=group), position=position_dodge(width=0.2), width=0.2)+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  geom_abline(intercept=0, slope=0, linetype="dashed")+
+  theme_classic()+theme(legend.position = "none")
+
+synch_plot3 <- ggplot(data=synch_all_pred_p, aes(x=x, y=predicted, colour=group))+
+  geom_point(position=position_dodge(width=0.2))+
+  geom_errorbar(aes(ymin=conf.low, ymax=conf.high, colour=group), position=position_dodge(width=0.2), width=0.2)+
+  #geom_line(aes(y=conf.low, color=group), linetype=2)+
+  #geom_line(aes(y=conf.high, color=group), linetype=2)+
+  geom_abline(intercept=0, slope=0, linetype="dashed")+
+  theme_classic()+theme(legend.position = "none")
+
+grid.arrange(synch_plot1, synch_plot2, synch_plot3, nrow=1)
+
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/synchrogram_plots.pdf", height=3, width=10)
+
+
+##### 5. True large vs small fragments
+
+# Load the file with large vs small
+
+l_vs_s <- read.csv("C:/jobb/disty/out_files/f_tables/temp_list_large_small.csv", sep=";", dec=",")
+
+l_vs_s_data <- df2 %>% left_join(dplyr::select(l_vs_s, "XKOORLOK", "YKOORLOK", "Stor"), by=c("fromXKOORLOK"="XKOORLOK", "fromYKOORLOK"="YKOORLOK"))
+
+l_vs_s_data2 <- l_vs_s_data %>% filter(!is.na(Stor)) %>% filter(over_frag01 == 0) %>% filter(rivdist<10000)
+
+l_vs_s_data3 <- l_vs_s_data2 %>% group_by(river_id, fromXY, unique_frag, Stor) %>% summarise(trout_rho_mean = mean(trout_rho, na.rm = T),
+                                                                                           trout_avg_lg_mean = mean(trout_avg, na.rm = T),
+                                                                                           rivdist_mean = mean(rivdist, na.rm = T),
+                                                                                           minnow_rho_mean = mean(minnow_rho, na.rm = T),
+                                                                                           minnow_avg_lg_mean = mean(minnow_avg, na.rm = T),
+                                                                                           pike_rho_mean = mean(pike_rho, na.rm = T),
+                                                                                           pike_avg_lg_mean = mean(pike_avg, na.rm = T),
+                                                                                           flowconn = mean(flowconn01))
+
+l_vs_s_data3 %>% ggplot(aes(x=Stor, y=trout_rho_mean, group = Stor)) + geom_boxplot() + theme_classic()
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/large_vs_small_rho.pdf", height=3, width=4)
+l_vs_s_data3 %>% ggplot(aes(x=Stor, y=trout_avg_lg_mean, group = Stor)) + geom_boxplot() + theme_classic()
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/large_vs_small_density.pdf", height=3, width=4)
+
+l_vs_s_data3 %>% ggplot(aes(x=Stor, y=minnow_rho_mean, group = Stor)) + geom_boxplot() + theme_classic()
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/large_vs_small_rho.pdf", height=3, width=4)
+l_vs_s_data3 %>% ggplot(aes(x=Stor, y=minnow_avg_lg_mean, group = Stor)) + geom_boxplot() + theme_classic()
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/large_vs_small_density.pdf", height=3, width=4)
+
+l_vs_s_data3 %>% ggplot(aes(x=Stor, y=pike_rho_mean, group = Stor)) + geom_boxplot() + theme_classic()
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/large_vs_small_rho.pdf", height=3, width=4)
+l_vs_s_data3 %>% ggplot(aes(x=Stor, y=pike_avg_lg_mean, group = Stor)) + geom_boxplot() + theme_classic()
+#dev.copy2pdf(file="C:/jobb/disty/figs_new/large_vs_small_density.pdf", height=3, width=4)
+
+l_vs_s_data_trout <- l_vs_s_data %>% filter(trout_n_gt0_two > 0)
+l_vs_s_data_minnow <- l_vs_s_data %>% filter(minnow_n_gt0_two > 0)
+l_vs_s_data_pike <- l_vs_s_data %>% filter(pike_n_gt0_two > 0)
+
+
+length(unique(l_vs_s_data_trout$fromXY))
+
+summary(lmerMultiMember::lmer(data=l_vs_s_data_trout, trout_rho ~ Stor + sqrt_rivdist * flowconn01 + (1|unique_frag) + (1|river_id) + (1|site), memberships = list(site=membership_matrix_trout)))
+summary(lmerMultiMember::lmer(data=l_vs_s_data_minnow, minnow_rho ~ Stor + sqrt_rivdist * flowconn01 + (1|unique_frag) + (1|river_id) + (1|site), memberships = list(site=membership_matrix_minnow)))
+summary(lmerMultiMember::lmer(data=l_vs_s_data_pike, pike_rho ~ Stor + sqrt_rivdist * flowconn01 + (1|unique_frag) + (1|river_id) + (1|site), memberships = list(site=membership_matrix_pike)))
+
+
+
+summary(lm(data=l_vs_s_data3, trout_rho_mean ~ Stor + rivdist_mean * flowconn + factor(river_id)))
+summary(lm(data=l_vs_s_data3, trout_avg_lg_mean ~ Stor + rivdist_mean * flowconn + factor(river_id)))
+
+summary(lm(data=l_vs_s_data3, minnow_rho_mean ~ Stor + rivdist_mean * flowconn + factor(river_id)))
+summary(lm(data=l_vs_s_data3, minnow_avg_lg_mean ~ Stor + rivdist_mean * flowconn + factor(river_id)))
+
+summary(lm(data=l_vs_s_data3, pike_rho_mean ~ Stor + rivdist_mean * flowconn + factor(river_id)))
+summary(lm(data=l_vs_s_data3, pike_avg_lg_mean ~ Stor + rivdist_mean * flowconn + factor(river_id)))
 
